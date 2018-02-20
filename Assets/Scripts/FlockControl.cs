@@ -11,7 +11,7 @@ public class FlockControl : MonoBehaviour {
 	private GameObject goal;
 	private BirdControl[] birds;
 
-	private readonly int NUM_BIRDS = 1;
+	private readonly int NUM_BIRDS = 50;
 	private readonly float ROOM_WIDTH = 50;
 	private readonly float ROOM_HEIGHT = 40;
 
@@ -36,8 +36,9 @@ public class FlockControl : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		// Reset the backgrounds each position based on room settings
-		background.transform.position = new Vector2(ROOM_WIDTH/2,ROOM_HEIGHT/2);
+		background.transform.position = new Vector3(ROOM_WIDTH/2,ROOM_HEIGHT/2,5);
 		background.transform.localScale = new Vector3(ROOM_WIDTH+5,ROOM_HEIGHT+5,1);
+		background.GetComponent<Renderer>().material.color = Color.black;
 		// Generate goal's position
 		Vector2 goalPosition = randomPosition();
 		goal = Instantiate<GameObject>(goalPrefab);
@@ -46,9 +47,15 @@ public class FlockControl : MonoBehaviour {
 		birds = new BirdControl[NUM_BIRDS];
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			BirdControl bird = Instantiate<GameObject>(birdPrefab).GetComponent<BirdControl>();
-			bird.Setup(1,5);
 			bird.transform.position = randomPosition();
+			bird.Setup(this,1,5,i);
+			bird.GetComponent<Renderer>().material.color = new Color(Random.value,Random.value,Random.value);
 			birds[i] = bird;
+		}
+
+		foreach (BirdControl bird in birds) {
+			Vector2 speed = new Vector2(Random.Range(-1f,1f),Random.Range(-1f,1f)).normalized;
+			bird.SetAcceleration(speed*5);
 		}
 
 
@@ -67,7 +74,12 @@ public class FlockControl : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		
+
+	}
+
+
+	public Rect GetWorldBound() {
+		return new Rect(0,0,ROOM_WIDTH,ROOM_HEIGHT);
 	}
 
 	private Vector3 randomPosition() {
