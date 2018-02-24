@@ -60,13 +60,19 @@ public class FlockControl : MonoBehaviour {
 	}
 
 	public void Deserialize(string rawCommand) {
+		// Expected format is a Python list of lists of two numbers ie [[1,2],[3,4]]
+		// Removed the outermost brackets
 		rawCommand = rawCommand.Substring(1,rawCommand.Length-2);
+		// If we know for sure we had more than 1 bird, we could split by '],[' but instead we must split by '['
 		string[] rawSplits = rawCommand.Split(new char[]{'['});
 
 		for (int i = 0; i < rawSplits.Length; i++) {
+			// The first string will always be "", so the bird we are on is i-1
 			if (rawSplits[i] == "") {
 				continue;
 			}
+			// Splitting by ']' and getting the first element in that split gives us 1,2
+			// So split that by ',' to get the raw numbers
 			string[] xy = rawSplits[i].Split(new char[]{']'})[0].Split(new char[]{','});
 			Vector2 accel = new Vector2(float.Parse(xy[0]),float.Parse(xy[1]));
 			birdControls[i-1].SetAcceleration(accel);
