@@ -25,7 +25,6 @@ public class NetMqListener {
 				string frameString;
 				if (!subSocket.TryReceiveFrameString(out frameString))
 					continue;
-				Debug.Log(frameString);
 				_messageQueue.Enqueue(frameString);
 			}
 			subSocket.Close();

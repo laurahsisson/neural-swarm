@@ -11,7 +11,7 @@ public class FlockControl : MonoBehaviour {
 	private GameObject goal;
 	private BirdControl[] birdControls;
 
-	private readonly int NUM_BIRDS = 1;
+	private readonly int NUM_BIRDS = 5;
 	private readonly float ROOM_WIDTH = 50;
 	private readonly float ROOM_HEIGHT = 40;
 
@@ -70,7 +70,6 @@ public class FlockControl : MonoBehaviour {
 			string[] xy = rawSplits[i].Split(new char[]{']'})[0].Split(new char[]{','});
 			Vector2 accel = new Vector2(float.Parse(xy[0]),float.Parse(xy[1]));
 			birdControls[i-1].SetAcceleration(accel);
-			print(accel);
 		}
 	}
 
