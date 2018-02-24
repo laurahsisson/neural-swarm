@@ -28,7 +28,7 @@ def handleEvent(evt,socket_listen):
     if not flock_control:
         flock_control = fc.FlockControl(len(response["birds"]))
     command = flock_control.make_decisions(response)
-    print(command)
+    print(json.dumps(command).encode("utf-8"))
     return True
 
 def closeSocketAndWait(socket_listen):

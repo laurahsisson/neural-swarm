@@ -22,13 +22,11 @@ public class BirdControl : MonoBehaviour {
 		public float size;
 		public float speed;
 		public float mass;
-		public int number;
 	}
 
 	[System.Serializable]
 	public struct BirdCommand {
 		public Vector2 velocity;
-		public int number;
 	}
 
 
@@ -76,7 +74,6 @@ public class BirdControl : MonoBehaviour {
 	public Bird ToStruct() {
 		Bird b = new Bird();
 		b.mass=mass;
-		b.number=number;
 		b.position=transform.position;
 		b.size=size;
 		b.speed=speed;
@@ -85,9 +82,6 @@ public class BirdControl : MonoBehaviour {
 	}
 
 	public void FromStruct(BirdCommand bc) {
-		if (number!=bc.number) {
-			Debug.LogError("Deserializing the wrong bird! Number :" + number + " but received :" + bc.number);
-		}
 		velocity = bc.velocity;
 	}
 
