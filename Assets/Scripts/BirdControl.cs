@@ -15,6 +15,21 @@ public class BirdControl : MonoBehaviour {
 	private float mass;
 	private int number = -1;
 
+	[System.Serializable]
+	public struct Bird {
+		public Vector2 position;
+		public Vector2 velocity;
+		public float size;
+		public float speed;
+		public float mass;
+		public int number;
+	}
+
+	[System.Serializable]
+	public struct BirdCommand {
+		public Vector2 velocity;
+		public int number;
+	}
 
 
 	public void Setup(FlockControl flockControl, float size, float speed, int number) {
@@ -38,7 +53,7 @@ public class BirdControl : MonoBehaviour {
 	}
 
 	// Update is called once per frame
-	void Update () {
+	public void Update () {
 		lastPos = transform.position;
 
 		velocity += accel/mass*Time.deltaTime;
@@ -48,6 +63,32 @@ public class BirdControl : MonoBehaviour {
 		updateRotation();
 		handleOutOfBounds(flockControl.GetWorldBound(),lastPos);
 
+	}
+
+	public void OnTriggerEnter2D(Collider2D collider) {
+		BirdControl other = collider.GetComponent<BirdControl>();
+		if (other.number < number || number == -1) {
+			return;
+		}
+		handleBirdCollision(other);
+	}
+
+	public Bird ToStruct() {
+		Bird b = new Bird();
+		b.mass=mass;
+		b.number=number;
+		b.position=transform.position;
+		b.size=size;
+		b.speed=speed;
+		b.velocity=velocity;
+		return b;
+	}
+
+	public void FromStruct(BirdCommand bc) {
+		if (number!=bc.number) {
+			Debug.LogError("Deserializing the wrong bird! Number :" + number + " but received :" + bc.number);
+		}
+		velocity = bc.velocity;
 	}
 
 	private void updateRotation() {
@@ -68,14 +109,12 @@ public class BirdControl : MonoBehaviour {
 			velocity = new Vector2(velocity.x,-velocity.y);
 		}
 
+		Debug.Log("Clearing accel");
+		accel = Vector2.zero;
 		transform.position = lastPos;
 	}
-
-	void OnTriggerEnter2D(Collider2D collider) {
-		BirdControl other = collider.GetComponent<BirdControl>();
-		if (other.number < number || number == -1) {
-			return;
-		}
+		
+	private void handleBirdCollision(BirdControl other) {
 		Vector2 posDifference = (Vector2) (transform.position - other.transform.position);
 		float relativeMass = (2*other.mass)/(mass + other.mass);
 		float vPosDot = Vector2.Dot(velocity-other.velocity,posDifference);
@@ -96,8 +135,6 @@ public class BirdControl : MonoBehaviour {
 		other.velocity = otherNewVelocity;
 		other.updateRotation();
 		other.transform.position = other.lastPos;
-
-
 	}
 
 }
