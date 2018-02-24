@@ -24,12 +24,6 @@ public class BirdControl : MonoBehaviour {
 		public float mass;
 	}
 
-	[System.Serializable]
-	public struct BirdCommand {
-		public Vector2 velocity;
-	}
-
-
 	public void Setup(FlockControl flockControl, float size, float speed, int number) {
 		this.flockControl = flockControl;
 		this.velocity = Vector2.zero;
@@ -79,10 +73,6 @@ public class BirdControl : MonoBehaviour {
 		b.speed=speed;
 		b.velocity=velocity;
 		return b;
-	}
-
-	public void FromStruct(BirdCommand bc) {
-		velocity = bc.velocity;
 	}
 
 	private void updateRotation() {

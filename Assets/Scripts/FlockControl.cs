@@ -38,26 +38,14 @@ public class FlockControl : MonoBehaviour {
 			BirdControl bird = Instantiate<GameObject>(birdPrefab).GetComponent<BirdControl>();
 			bird.transform.position = randomPosition();
 			bird.Setup(this,1,5,i);
-			bird.GetComponent<Renderer>().material.color = new Color(Random.value,Random.value,Random.value);
+			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f,1f),Random.Range(.5f,1f),Random.Range(.5f,1f));
 			birdControls[i] = bird;
 		}
 
-		foreach (BirdControl bird in birdControls) {
-			Vector2 speed = new Vector2(Random.Range(-1f,1f),Random.Range(-1f,1f)).normalized;
-			bird.SetAcceleration(speed*5);
-		}
-
-
-//		Bird b = new Bird();
-//		b.position = Vector2.up;
-//		b.velocity = Vector2.left;
-//		Bird[] birds = new Bird[2];
-//		birds[0] = b;
-//
-//		GameState gs = new GameState(birds);
-//		Debug.Log(gs);
-//		Debug.Log(JsonUtility.ToJson(gs));
-//		//Debug.Log(JsonUtility.ToJson(gs));
+//		foreach (BirdControl bird in birdControls) {
+//			Vector2 speed = new Vector2(Random.Range(-1f,1f),Random.Range(-1f,1f)).normalized;
+//			bird.SetAcceleration(speed*5);
+//		}
 	}
 	
 	public string Serialize() {
@@ -69,6 +57,21 @@ public class FlockControl : MonoBehaviour {
 		ws.birds = birds;
 		ws.goalPosition = (Vector2)goal.transform.position;
 		return JsonUtility.ToJson(ws);
+	}
+
+	public void Deserialize(string rawCommand) {
+		rawCommand = rawCommand.Substring(1,rawCommand.Length-2);
+		string[] rawSplits = rawCommand.Split(new char[]{'['});
+
+		for (int i = 0; i < rawSplits.Length; i++) {
+			if (rawSplits[i] == "") {
+				continue;
+			}
+			string[] xy = rawSplits[i].Split(new char[]{']'})[0].Split(new char[]{','});
+			Vector2 accel = new Vector2(float.Parse(xy[0]),float.Parse(xy[1]));
+			birdControls[i-1].SetAcceleration(accel);
+			print(accel);
+		}
 	}
 
 
