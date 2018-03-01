@@ -12,7 +12,7 @@ public class FlockControl : MonoBehaviour {
 	private BirdControl[] birdControls;
 	private int reachedGoal;
 
-	private readonly int NUM_BIRDS = 30;
+	private readonly int NUM_BIRDS = 50;
 	private readonly float ROOM_WIDTH = 50;
 	private readonly float ROOM_HEIGHT = 40;
 

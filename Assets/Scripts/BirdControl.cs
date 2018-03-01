@@ -80,6 +80,12 @@ public class BirdControl : MonoBehaviour {
 		}
 	}
 
+	public void OnTriggerStay2D(Collider2D collider) {
+		ColliderDistance2D dist = gameObject.GetComponent<Collider2D>().Distance(collider);
+		transform.position += (Vector3) dist.normal*dist.distance/2;
+		collider.gameObject.transform.position -= (Vector3) dist.normal*dist.distance/2;
+	}
+
 	public Bird ToStruct() {
 		Bird b = new Bird();
 		b.mass=mass;
@@ -128,12 +134,9 @@ public class BirdControl : MonoBehaviour {
 
 		velocity = myNewVelocity;
 		updateRotation();
-		transform.position = lastPos;
-
 
 		other.velocity = otherNewVelocity;
 		other.updateRotation();
-		other.transform.position = other.lastPos;
 	}
 
 }
