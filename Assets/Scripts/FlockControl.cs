@@ -11,9 +11,15 @@ public class FlockControl : MonoBehaviour {
 	private GameObject goal;
 	private BirdControl[] birdControls;
 
-	private readonly int NUM_BIRDS = 5;
+	private readonly int NUM_BIRDS = 30;
 	private readonly float ROOM_WIDTH = 50;
 	private readonly float ROOM_HEIGHT = 40;
+
+	private readonly float MIN_SIZE = .75f;
+	private readonly float MAX_SIZE = 1.3f;
+
+	private readonly float MIN_SPEED = 4f;
+	private readonly float MAX_SPEED = 6f;
 
 	[System.Serializable]
 	struct WorldState {
@@ -37,7 +43,9 @@ public class FlockControl : MonoBehaviour {
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			BirdControl bird = Instantiate<GameObject>(birdPrefab).GetComponent<BirdControl>();
 			bird.transform.position = randomPosition();
-			bird.Setup(this,1,5,i);
+			float size = Random.Range(MIN_SIZE,MAX_SIZE);
+			float speed = Random.Range(MIN_SPEED,MAX_SPEED);
+			bird.Setup(this,size,speed,i);
 			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f,1f),Random.Range(.5f,1f),Random.Range(.5f,1f));
 			birdControls[i] = bird;
 		}
