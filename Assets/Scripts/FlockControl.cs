@@ -10,6 +10,7 @@ public class FlockControl : MonoBehaviour {
 
 	private GameObject goal;
 	private BirdControl[] birdControls;
+	private int reachedGoal;
 
 	private readonly int NUM_BIRDS = 30;
 	private readonly float ROOM_WIDTH = 50;
@@ -42,18 +43,9 @@ public class FlockControl : MonoBehaviour {
 		birdControls = new BirdControl[NUM_BIRDS];
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			BirdControl bird = Instantiate<GameObject>(birdPrefab).GetComponent<BirdControl>();
-			bird.transform.position = randomPosition();
-			float size = Random.Range(MIN_SIZE,MAX_SIZE);
-			float speed = Random.Range(MIN_SPEED,MAX_SPEED);
-			bird.Setup(this,size,speed,i);
-			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f,1f),Random.Range(.5f,1f),Random.Range(.5f,1f));
 			birdControls[i] = bird;
 		}
-
-//		foreach (BirdControl bird in birdControls) {
-//			Vector2 speed = new Vector2(Random.Range(-1f,1f),Random.Range(-1f,1f)).normalized;
-//			bird.SetAcceleration(speed*5);
-//		}
+		resetBirds();
 	}
 	
 	public string Serialize() {
@@ -65,6 +57,26 @@ public class FlockControl : MonoBehaviour {
 		ws.birds = birds;
 		ws.goalPosition = (Vector2)goal.transform.position;
 		return JsonUtility.ToJson(ws);
+	}
+
+	public void IncrementGoal() {
+		reachedGoal++;
+		if (reachedGoal==NUM_BIRDS){
+			resetBirds();
+		}
+	}
+
+	private void resetBirds() {
+		reachedGoal = 0;
+		for (int i = 0; i < NUM_BIRDS; i++) {
+			BirdControl bird = birdControls[i];
+			bird.transform.position = randomPosition();
+			float size = Random.Range(MIN_SIZE,MAX_SIZE);
+			float speed = Random.Range(MIN_SPEED,MAX_SPEED);
+			bird.Setup(this,size,speed,i);
+			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f,1f),Random.Range(.5f,1f),Random.Range(.5f,1f));
+		}
+			
 	}
 
 	public void Deserialize(string rawCommand) {

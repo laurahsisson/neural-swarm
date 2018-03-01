@@ -14,6 +14,7 @@ public class BirdControl : MonoBehaviour {
 	private float speed;
 	private float mass;
 	private int number = -1;
+	private bool moving = false;
 
 	[System.Serializable]
 	public struct Bird {
@@ -33,6 +34,8 @@ public class BirdControl : MonoBehaviour {
 		this.mass = size*size;
 		this.number = number;
 		this.lastPos = transform.position;
+		moving = true;
+		gameObject.GetComponent<Collider2D>().enabled = true;
 	}
 
 
@@ -46,6 +49,11 @@ public class BirdControl : MonoBehaviour {
 
 	// Update is called once per frame
 	public void Update () {
+		if (!moving) {
+			transform.position=new Vector3(transform.position.x,transform.position.y,10);
+			return;
+		}
+
 		lastPos = transform.position;
 
 		velocity += accel/mass*Time.deltaTime;
@@ -58,11 +66,18 @@ public class BirdControl : MonoBehaviour {
 	}
 
 	public void OnTriggerEnter2D(Collider2D collider) {
-		BirdControl other = collider.GetComponent<BirdControl>();
-		if (other.number < number || number == -1) {
-			return;
+		if (collider.gameObject.tag=="Bird") {
+			BirdControl other = collider.GetComponent<BirdControl>();
+			if (other.number < number || number == -1) {
+				return;
+			}
+			handleBirdCollision(other);
 		}
-		handleBirdCollision(other);
+		if (collider.gameObject.tag=="Goal") {
+			moving = false;
+			gameObject.GetComponent<Collider2D>().enabled=false;
+			flockControl.IncrementGoal();
+		}
 	}
 
 	public Bird ToStruct() {
