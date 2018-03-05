@@ -34,21 +34,29 @@ public class StatsControl : MonoBehaviour {
 	public void PrintStats() {
 		Debug.Log("Bird/Wall Collisions: " + wallCollisions);
 		Debug.Log("Bird/Wall Collisions: " + birdCollisions);
-		float max_time = 0;
-		float min_time = Mathf.Infinity;
-		float total_time = 0;
+		float maxTime = 0;
+		float minTime = Mathf.Infinity;
+		float totalTime = 0;
 		for (int i = 0; i < completionTimes.Length; i++) {
 			float time = completionTimes[i];
-			if (time > max_time) {
-				max_time = time;
+			if (time > maxTime) {
+				maxTime = time;
 			}
-			if (time < min_time) {
-				min_time = time;
+			if (time < minTime) {
+				minTime = time;
 			}
-			total_time += time;
+			totalTime += time;
 		}
-		Debug.Log("Minimum Completion Time: " + min_time);
-		Debug.Log("Maximum Completion Time: " + max_time);
-		Debug.Log("Average Completion Time: " + (total_time/completionTimes.Length));
+		float averageTime = totalTime/completionTimes.Length;
+		float stdDevSum = 0;
+		for (int i = 0; i < completionTimes.Length; i++) {
+			stdDevSum = Mathf.Pow(completionTimes[i],2f);
+		}
+		float standardDeviation = Mathf.Pow(stdDevSum/(completionTimes.Length-1),.5f);
+		Debug.Log("Minimum Completion Time: " + minTime);
+		Debug.Log("Maximum Completion Time: " + maxTime);
+		Debug.Log("Average Completion Time: " + averageTime);
+		Debug.Log("Standard Deviation of Completion Time: " + standardDeviation);
+
 	}
 }
