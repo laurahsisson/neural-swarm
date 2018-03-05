@@ -10,6 +10,7 @@ public class BirdControl : MonoBehaviour {
 	private Vector2 accel;
 
 	private FlockControl flockControl;
+	private StatsControl statsControl;
 	private float size;
 	private float speed;
 	private float mass;
@@ -25,8 +26,9 @@ public class BirdControl : MonoBehaviour {
 		public float mass;
 	}
 
-	public void Setup(FlockControl flockControl, float size, float speed, int number) {
-		this.flockControl = flockControl;
+	public void Setup(float size, float speed, int number) {
+		this.flockControl = FindObjectOfType<FlockControl>();
+		this.statsControl = FindObjectOfType<StatsControl>();
 		this.velocity = Vector2.zero;
 		this.size = size;
 		this.transform.localScale*=size;
@@ -41,7 +43,7 @@ public class BirdControl : MonoBehaviour {
 
 	public void SetAcceleration(Vector2 accel) {
 		if (accel.magnitude > speed*1.001f) {
-			Debug.Log("Setting acceleration too high:" + accel.magnitude + "," + speed);
+//			Debug.Log("Setting acceleration too high:" + accel.magnitude + "," + speed);
 			accel = Vector2.ClampMagnitude(accel,speed);
 		}
 		this.accel = accel;
@@ -76,14 +78,24 @@ public class BirdControl : MonoBehaviour {
 		if (collider.gameObject.tag=="Goal") {
 			moving = false;
 			gameObject.GetComponent<Collider2D>().enabled=false;
+			statsControl.Complete(number);
 			flockControl.IncrementGoal();
+		}
+		if (collider.gameObject.tag=="Wall") {
+			handleWallCollision(collider);
 		}
 	}
 
 	public void OnTriggerStay2D(Collider2D collider) {
-		ColliderDistance2D dist = gameObject.GetComponent<Collider2D>().Distance(collider);
-		transform.position += (Vector3) dist.normal*dist.distance/2;
-		collider.gameObject.transform.position -= (Vector3) dist.normal*dist.distance/2;
+		if (collider.gameObject.tag=="Bird") {
+			ColliderDistance2D dist = gameObject.GetComponent<Collider2D>().Distance(collider);
+			transform.position += (Vector3) dist.normal*dist.distance/2;
+			collider.gameObject.transform.position -= (Vector3) dist.normal*dist.distance/2;
+		}
+		if (collider.gameObject.tag=="Wall") {
+			ColliderDistance2D dist = gameObject.GetComponent<Collider2D>().Distance(collider);
+			transform.position += (Vector3) dist.normal*dist.distance;
+		}
 	}
 
 	public Bird ToStruct() {
@@ -105,38 +117,58 @@ public class BirdControl : MonoBehaviour {
 		if (worldBound.Contains(transform.position)) {
 			return;
 		}
-
-		if (transform.position.x < worldBound.xMin || transform.position.x > worldBound.xMax) {
+			
+		if (transform.position.x < worldBound.xMin) {
 			velocity = new Vector2(-velocity.x,velocity.y);
+			transform.position = new Vector3(.01f,transform.position.y);
+		}
+		if (transform.position.x > worldBound.xMax) {
+			velocity = new Vector2(-velocity.x,velocity.y);
+			transform.position = new Vector3(worldBound.xMax-.01f,transform.position.y);
 		}
 
-		if (transform.position.y < worldBound.yMin || transform.position.y > worldBound.yMax) {
+		if (transform.position.y < worldBound.yMin) {
 			velocity = new Vector2(velocity.x,-velocity.y);
+			transform.position = new Vector3(transform.position.x,.01f);
 		}
 
-		Debug.Log("Clearing accel");
+		if (transform.position.y > worldBound.yMax) {
+			velocity = new Vector2(velocity.x,-velocity.y);
+			transform.position = new Vector3(transform.position.x,worldBound.yMax-.01f);
+		}
+
 		accel = Vector2.zero;
-		transform.position = lastPos;
 	}
 		
 	private void handleBirdCollision(BirdControl other) {
-		Vector2 posDifference = (Vector2) (transform.position - other.transform.position);
-		float relativeMass = (2*other.mass)/(mass + other.mass);
-		float vPosDot = Vector2.Dot(velocity-other.velocity,posDifference);
-		float posDistance = Mathf.Pow(posDifference.magnitude,2);
-		Vector2 myNewVelocity = velocity - relativeMass * vPosDot/posDistance * posDifference;
-
-		posDifference = (Vector2) (other.transform.position - transform.position);
-		relativeMass = (2*mass)/(mass + other.mass);
-		vPosDot = Vector2.Dot(other.velocity-velocity,posDifference);
-		posDistance = Mathf.Pow(posDifference.magnitude,2);
-		Vector2 otherNewVelocity = other.velocity - relativeMass * vPosDot/posDistance * posDifference;
-
-		velocity = myNewVelocity;
+		velocity = getResultantVelocity(transform.position,other.transform.position,mass,other.mass,velocity,other.velocity);
 		updateRotation();
 
-		other.velocity = otherNewVelocity;
+		other.velocity = getResultantVelocity(other.transform.position,transform.position,other.mass,mass,other.velocity,velocity);
 		other.updateRotation();
+		statsControl.AddBirdCollision();
+
 	}
 
+
+	private static Vector2 getResultantVelocity(Vector2 position1, Vector2 position2, float mass1, float mass2, Vector2 velocity1, Vector2 velocity2) {
+		Vector2 posDifference = (Vector2) (position1 - position2);
+		float relativeMass;
+		if (mass2 == Mathf.Infinity) {
+			relativeMass = 2f;
+		} else {
+			relativeMass = (2*mass2)/(mass1+mass2);
+		}
+		float vPosDot = Vector2.Dot(velocity1-velocity2,posDifference);
+		float posDistance = Mathf.Pow(posDifference.magnitude,2);
+		Vector2 myNewVelocity = velocity1 - relativeMass * vPosDot/posDistance * posDifference;
+		return myNewVelocity;
+	}
+
+	private void handleWallCollision(Collider2D other) {
+		ColliderDistance2D dist = gameObject.GetComponent<Collider2D>().Distance(other);
+		transform.position += (Vector3) dist.normal*dist.distance;
+		velocity = getResultantVelocity(transform.position,dist.pointB,mass,Mathf.Infinity,velocity,Vector2.zero);
+		statsControl.AddWallCollision();
+	}
 }

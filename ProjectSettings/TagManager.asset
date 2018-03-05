@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Goal
   - Bird
+  - Wall
   layers:
   - Default
   - TransparentFX
