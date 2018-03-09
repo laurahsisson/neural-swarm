@@ -6,14 +6,38 @@ using UnityEngine;
 public class FlockControl : MonoBehaviour {
 	public GameObject goalPrefab;
 	public GameObject birdPrefab;
+	public GameObject wallPrefab;
 	public GameObject background;
 
 	private GameObject goal;
 	private BirdControl[] birdControls;
+	private int reachedGoal;
 
-	private readonly int NUM_BIRDS = 5;
+	private StatsControl statsControl;
+
+	private GameObject[] walls;
+
+	private float startTime = 0;
+
+	private readonly int NUM_BIRDS = 50;
 	private readonly float ROOM_WIDTH = 50;
 	private readonly float ROOM_HEIGHT = 40;
+
+	private readonly float MIN_SIZE = .75f;
+	private readonly float MAX_SIZE = 1.3f;
+
+	private readonly float MIN_SPEED = 4f;
+	private readonly float MAX_SPEED = 6f;
+
+	private readonly int NUM_WALLS = 5;
+	private readonly float WALL_MAX_WIDTH = 10f;
+	private readonly float WALL_MIN_WIDTH = 2f;
+	// Walls are constrained to have fixed area, so width = area/height
+	private readonly float WALL_MAX_AREA = 12f;
+	private readonly float WALL_MIN_AREA = 8f;
+
+	private readonly float MAX_TIME = 25f;
+
 
 	[System.Serializable]
 	struct WorldState {
@@ -27,25 +51,23 @@ public class FlockControl : MonoBehaviour {
 		background.transform.localScale = new Vector3(ROOM_WIDTH+5,ROOM_HEIGHT+5,1);
 		background.GetComponent<Renderer>().material.color = Color.black;
 
-		// Generate goal's position
-		Vector2 goalPosition = randomPosition();
 		goal = Instantiate<GameObject>(goalPrefab);
-		goal.transform.position = goalPosition;
+		statsControl = FindObjectOfType<StatsControl>();
 
 		// Generate birds
 		birdControls = new BirdControl[NUM_BIRDS];
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			BirdControl bird = Instantiate<GameObject>(birdPrefab).GetComponent<BirdControl>();
-			bird.transform.position = randomPosition();
-			bird.Setup(this,1,5,i);
-			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f,1f),Random.Range(.5f,1f),Random.Range(.5f,1f));
 			birdControls[i] = bird;
 		}
 
-//		foreach (BirdControl bird in birdControls) {
-//			Vector2 speed = new Vector2(Random.Range(-1f,1f),Random.Range(-1f,1f)).normalized;
-//			bird.SetAcceleration(speed*5);
-//		}
+		walls = new GameObject[NUM_WALLS];
+		for (int i = 0; i < NUM_WALLS; i++) {
+			walls[i] = Instantiate<GameObject>(wallPrefab);
+			}
+
+		resetBirds();
+
 	}
 	
 	public string Serialize() {
@@ -57,6 +79,39 @@ public class FlockControl : MonoBehaviour {
 		ws.birds = birds;
 		ws.goalPosition = (Vector2)goal.transform.position;
 		return JsonUtility.ToJson(ws);
+	}
+
+	public void IncrementGoal() {
+		reachedGoal++;
+		if (reachedGoal==NUM_BIRDS){
+			statsControl.PrintStats();
+			resetBirds();
+		}
+	}
+
+	private void resetBirds() {
+		goal.transform.position = randomPosition();
+
+		reachedGoal = 0;
+		for (int i = 0; i < NUM_BIRDS; i++) {
+			BirdControl bird = birdControls[i];
+			bird.transform.position = randomPosition();
+			float size = Random.Range(MIN_SIZE,MAX_SIZE);
+			float speed = Random.Range(MIN_SPEED,MAX_SPEED);
+			bird.Setup(size,speed,i);
+			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f,1f),Random.Range(.5f,1f),Random.Range(.5f,1f));
+		}
+
+		for (int i = 0; i < NUM_WALLS; i++) {
+			float width = Random.Range(WALL_MIN_WIDTH,WALL_MAX_WIDTH);
+			float area = Random.Range(WALL_MIN_AREA,WALL_MAX_AREA);
+			walls[i].transform.localScale = new Vector3(width,area/width,1f);
+			walls[i].transform.position = randomPosition();
+			walls[i].transform.rotation = Quaternion.Euler(0,0,Random.Range(0f,360f));
+		}
+
+		statsControl.Setup(NUM_BIRDS,MAX_TIME);
+		startTime = Time.time;
 	}
 
 	public void Deserialize(string rawCommand) {
@@ -86,5 +141,12 @@ public class FlockControl : MonoBehaviour {
 
 	private Vector3 randomPosition() {
 		return new Vector3(Random.Range(0,ROOM_WIDTH),Random.Range(0,ROOM_HEIGHT),0);
+	}
+
+	private void Update() {
+		if (Time.time-startTime>MAX_TIME) {
+			statsControl.PrintStats();
+			resetBirds();
+		}
 	}
 }

@@ -374,6 +374,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   goalPrefab: {fileID: 1563390688399742, guid: 578423f79fef3429493f3088ac1d91c2, type: 2}
   birdPrefab: {fileID: 1155233660852106, guid: e65de7fa315e240b086811a2fcf28f4c, type: 2}
+  wallPrefab: {fileID: 1104780376491596, guid: 2002fbfd3662a41529e9be55ce502ee0, type: 2}
   background: {fileID: 1513874451}
 --- !u!4 &1948064432
 Transform:
