@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// this class controls the "birds" in Unity. 
+// This script is a component of the Bird prefab
+
 public class BirdControl : MonoBehaviour {
 	private Vector3 lastPos;
 
