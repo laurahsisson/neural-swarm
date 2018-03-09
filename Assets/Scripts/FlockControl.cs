@@ -9,19 +9,13 @@ public class FlockControl : MonoBehaviour {
 	public GameObject wallPrefab;
 	public GameObject background;
 
-	private GameObject goal;
-	private BirdControl[] birdControls;
-	private int reachedGoal;
-
 	private StatsControl statsControl;
 
-	private GameObject[] walls;
-
-	private float startTime = 0;
-
-	private readonly int NUM_BIRDS = 50;
 	private readonly float ROOM_WIDTH = 50;
 	private readonly float ROOM_HEIGHT = 40;
+
+	private BirdControl[] birdControls;
+	private readonly int NUM_BIRDS = 50;
 
 	private readonly float MIN_SIZE = .75f;
 	private readonly float MAX_SIZE = 1.3f;
@@ -29,6 +23,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MIN_SPEED = 4f;
 	private readonly float MAX_SPEED = 6f;
 
+	private GameObject[] walls;
 	private readonly int NUM_WALLS = 5;
 	private readonly float WALL_MAX_WIDTH = 10f;
 	private readonly float WALL_MIN_WIDTH = 2f;
@@ -36,6 +31,9 @@ public class FlockControl : MonoBehaviour {
 	private readonly float WALL_MAX_AREA = 12f;
 	private readonly float WALL_MIN_AREA = 8f;
 
+	private GameObject goal;
+	private float startTime = 0;
+	private int reachedGoal;
 	private readonly float MAX_TIME = 25f;
 
 
