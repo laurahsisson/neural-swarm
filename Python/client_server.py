@@ -31,11 +31,13 @@ def handleEvent(evt,socket_listen, socket_reply):
     socket_reply.send_string(json.dumps(command))
     return True
 
-def closeSocketAndWait(socket_listen):
+def closeSocketAndWait(socket_listen,context):
+    print("Timed out. Waiting " + WAIT_TIME + " then reopening socket.")
     time.sleep(WAIT_TIME)
     socket_listen.close()
-    socket_listen = context.socket_listen(zmq.REQ)
+    socket_listen = context.socket(zmq.REQ)
     socket_listen.connect("tcp://localhost:12346")
+    return socket_listen
 
 def main():
     context = zmq.Context()
@@ -49,6 +51,6 @@ def main():
         if evt and handleEvent(evt,socket_listen,socket_reply):
             time.sleep(POLL_TIME)
             continue
-        closeSocketAndWait(socket_listen)
+        socket_listen = closeSocketAndWait(socket_listen,context)
 
 main()
