@@ -10,6 +10,7 @@ public class FlockControl : MonoBehaviour {
 	public GameObject background;
 
 	private StatsControl statsControl;
+	private UIControl uiControl;
 
 	private readonly float ROOM_WIDTH = 50;
 	private readonly float ROOM_HEIGHT = 40;
@@ -33,6 +34,7 @@ public class FlockControl : MonoBehaviour {
 
 	private GameObject goal;
 	private float startTime = 0;
+	private bool hasReceivedStart = false;
 	private int reachedGoal;
 	private readonly float MAX_TIME = 25f;
 
@@ -60,6 +62,7 @@ public class FlockControl : MonoBehaviour {
 
 		goal = Instantiate<GameObject>(goalPrefab);
 		statsControl = FindObjectOfType<StatsControl>();
+		uiControl = FindObjectOfType<UIControl>();
 
 		// Generate birds
 		birdControls = new BirdControl[NUM_BIRDS];
@@ -76,7 +79,6 @@ public class FlockControl : MonoBehaviour {
 		}
 
 		resetBirds();
-		print(Serialize());
 	}
 
 	public string Serialize() {
@@ -126,7 +128,9 @@ public class FlockControl : MonoBehaviour {
 		}
 
 		statsControl.Setup(NUM_BIRDS, MAX_TIME);
+		uiControl.AwaitingText();
 		startTime = Time.time;
+		hasReceivedStart = false;
 	}
 
 	public void Deserialize(string rawCommand) {
@@ -147,6 +151,7 @@ public class FlockControl : MonoBehaviour {
 			Vector2 accel = new Vector2(float.Parse(xy [0]), float.Parse(xy [1]));
 			birdControls [i - 1].SetAcceleration(accel);
 		}
+		hasReceivedStart = true;
 	}
 
 
@@ -159,9 +164,17 @@ public class FlockControl : MonoBehaviour {
 	}
 
 	private void Update() {
-		if (Time.time - startTime > MAX_TIME) {
+		if (!hasReceivedStart) {
+			startTime = Time.time;
+			return;
+		}
+		float remainTime = MAX_TIME - (Time.time - startTime);
+		uiControl.SetTime(remainTime);
+
+		if (remainTime < 0) {
 			statsControl.PrintStats();
 			resetBirds();
+
 		}
 	}
 
