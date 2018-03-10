@@ -6,11 +6,11 @@ class FlockControl():
         self.num_birds = num_birds
 
     def make_decisions(self, world_state):
-        
         birds = world_state["birds"]
         a = np.asarray([3,4])
         goal_pos = xy_dict_to_vector(world_state["goalPosition"])
-        return [point_to_goal(bird,goal_pos) for bird in birds]
+
+        return (world_state["generation"],[point_to_goal(bird,goal_pos) for bird in birds])
         
         
         

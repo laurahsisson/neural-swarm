@@ -35,12 +35,14 @@ public class FlockControl : MonoBehaviour {
 	private GameObject goal;
 	private float startTime = 0;
 	private bool hasReceivedStart = false;
+	private int generation = 0;
 	private int reachedGoal;
 	private readonly float MAX_TIME = 25f;
 
 
 	[System.Serializable]
 	struct WorldState {
+		public int generation;
 		public BirdControl.Bird[] birds;
 		public WallState[] walls;
 		public Vector2 goalPosition;
@@ -80,23 +82,7 @@ public class FlockControl : MonoBehaviour {
 
 		resetBirds();
 	}
-
-	public string Serialize() {
-		BirdControl.Bird[] birds = new BirdControl.Bird[NUM_BIRDS];
-		for (int i = 0; i < NUM_BIRDS; i++) {
-			birds [i] = birdControls [i].ToStruct();
-		}
-		WallState[] wallStates = new WallState[walls.Length];
-		for (int i = 0; i < NUM_WALLS; i++) {
-			wallStates[i] = wallToWallState(walls[i]);
-		}
-		WorldState ws = new WorldState();
-		ws.birds = birds;
-		ws.goalPosition = (Vector2)goal.transform.position;
-		ws.walls = wallStates;
-		return JsonUtility.ToJson(ws);
-	}
-
+		
 	public void IncrementGoal() {
 		reachedGoal++;
 		if (reachedGoal == NUM_BIRDS) {
@@ -131,13 +117,41 @@ public class FlockControl : MonoBehaviour {
 		uiControl.AwaitingText();
 		startTime = Time.time;
 		hasReceivedStart = false;
+		generation++;
+	}
+
+	public string Serialize() {
+		BirdControl.Bird[] birds = new BirdControl.Bird[NUM_BIRDS];
+		for (int i = 0; i < NUM_BIRDS; i++) {
+			birds [i] = birdControls [i].ToStruct();
+		}
+		WallState[] wallStates = new WallState[walls.Length];
+		for (int i = 0; i < NUM_WALLS; i++) {
+			wallStates[i] = wallToWallState(walls[i]);
+		}
+		WorldState ws = new WorldState();
+		ws.generation = generation;
+		ws.birds = birds;
+		ws.goalPosition = (Vector2)goal.transform.position;
+		ws.walls = wallStates;
+		return JsonUtility.ToJson(ws);
 	}
 
 	public void Deserialize(string rawCommand) {
-		// Expected format is a Python list of lists of two numbers ie [[1,2],[3,4]]
-		// Removed the outermost brackets
+		// Expected format is the generation follow by a Python list of lists of two numbers ie: [100,[[1,2],[3,4]]]
 		rawCommand = rawCommand.Substring(1, rawCommand.Length - 2);
-		// If we know for sure we had more than 1 bird, we could split by '],[' but instead we must split by '['
+		string[] generationListsOfListsSplit = rawCommand.Split(new char[]{','});
+		int rg =  int.Parse(generationListsOfListsSplit[0]);
+		if (rg != generation) {
+			// Do not accept commands from other generations
+			return;
+		}
+		rawCommand = rawCommand.Substring(generationListsOfListsSplit[0].Length+2,rawCommand.Length-3);		
+
+		// At this point we have [[1,2],[3,4]] so we must now remove the outermost brackets
+		rawCommand = rawCommand.Substring(1, rawCommand.Length - 2);
+		// If we know for sure we had more than 1 bird, we could split by '],[' but instead we must split by '[' 
+		// in the case we have just one, we receive [100,[[1,2]]]
 		string[] rawSplits = rawCommand.Split(new char[]{ '[' });
 
 		for (int i = 0; i < rawSplits.Length; i++) {
