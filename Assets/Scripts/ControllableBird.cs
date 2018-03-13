@@ -1,11 +1,11 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 // this class controls the "birds" in Unity. 
 // This script is a component of the Bird prefab
 
-public class BirdControl : MonoBehaviour {
+public class ControllableBird : MonoBehaviour {
 	private Vector3 lastPos;
 
 
@@ -54,25 +54,42 @@ public class BirdControl : MonoBehaviour {
 
 	// Update is called once per frame
 	public void Update () {
-		if (!moving) {
-			transform.position=new Vector3(transform.position.x,transform.position.y,10);
-			return;
+        
+		Vector3 mouse = Input.mousePosition;
+        mouse.z = 10f; // Set this to be the distance you want the object to be placed in front of the camera.
+        transform.position = Camera.main.ScreenToWorldPoint(mouse);
+        
+        // manually handle out of bounds, but doesn't work (NullPointerException)
+		/*Rect worldBound = flockControl.GetWorldBound();
+        if (mouse.x < flockControl.GetWorldBound().xMin) {
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(.01f,mouse.y));
+		}
+        
+		if (mouse.x > worldBound.xMax) {
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(worldBound.xMax-.01f,mouse.y)) ;
 		}
 
-		lastPos = transform.position;
+		if (mouse.y < worldBound.yMin) {
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(mouse.x,.01f));
+		}
 
-		velocity += accel/mass*Time.deltaTime;
-		velocity = Vector2.ClampMagnitude(velocity,speed);
-		transform.position += (Vector3)velocity*Time.deltaTime;
+		if (mouse.y > worldBound.yMax) {
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(mouse.x,worldBound.yMax-.01f));
+		}
+        */
 
-		updateRotation();
-		handleOutOfBounds(flockControl.GetWorldBound(),lastPos);
 
+        // commented out because velocity is not calculated for the bird in this situation
+        //velocity += accel/mass*Time.deltaTime;
+		//velocity = Vector2.ClampMagnitude(velocity,speed);
+		//transform.position += (Vector3)velocity*Time.deltaTime;
+		//updateRotation();
+		
 	}
 
 	public void OnTriggerEnter2D(Collider2D collider) {
 		if (collider.gameObject.tag=="Bird") {
-			BirdControl other = collider.GetComponent<BirdControl>();
+			ControllableBird other = collider.GetComponent<ControllableBird>();
 			if (other.number < number || number == -1) {
 				return;
 			}
@@ -116,34 +133,29 @@ public class BirdControl : MonoBehaviour {
 		transform.rotation = Quaternion.Euler(new Vector3(0,0,rotation*Mathf.Rad2Deg-90));
 	}
 
-	private void handleOutOfBounds(Rect worldBound,Vector3 lastPos) {
+	private void handleOutOfBounds(Rect worldBound,Vector3 lastPos, Vector3 mouse) {
 		if (worldBound.Contains(transform.position)) {
 			return;
 		}
 			
 		if (transform.position.x < worldBound.xMin) {
-			velocity = new Vector2(-velocity.x,velocity.y);
-			transform.position = new Vector3(.01f,transform.position.y);
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(.01f,mouse.y));
 		}
 		if (transform.position.x > worldBound.xMax) {
-			velocity = new Vector2(-velocity.x,velocity.y);
-			transform.position = new Vector3(worldBound.xMax-.01f,transform.position.y);
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(worldBound.xMax-.01f,mouse.y)) ;
 		}
 
 		if (transform.position.y < worldBound.yMin) {
-			velocity = new Vector2(velocity.x,-velocity.y);
-			transform.position = new Vector3(transform.position.x,.01f);
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(mouse.x,.01f));
 		}
 
 		if (transform.position.y > worldBound.yMax) {
-			velocity = new Vector2(velocity.x,-velocity.y);
-			transform.position = new Vector3(transform.position.x,worldBound.yMax-.01f);
+			transform.position = Camera.main.ScreenToWorldPoint(new Vector3(mouse.x,worldBound.yMax-.01f));
 		}
 
-		accel = Vector2.zero;
 	}
 		
-	private void handleBirdCollision(BirdControl other) {
+	private void handleBirdCollision(ControllableBird other) {
 		velocity = getResultantVelocity(transform.position,other.transform.position,mass,other.mass,velocity,other.velocity);
 		updateRotation();
 
