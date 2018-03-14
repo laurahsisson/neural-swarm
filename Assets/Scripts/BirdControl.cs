@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// this class controls the "birds" in Unity. 
-// This script is a component of the Bird prefab
-
 public class BirdControl : MonoBehaviour {
 	private Vector3 lastPos;
 
@@ -23,6 +20,7 @@ public class BirdControl : MonoBehaviour {
 	[System.Serializable]
 	public struct Bird {
 		public Vector2 position;
+		public RectCorners rectCorners;
 		public Vector2 velocity;
 		public float size;
 		public float speed;
@@ -105,6 +103,7 @@ public class BirdControl : MonoBehaviour {
 		Bird b = new Bird();
 		b.mass=mass;
 		b.position=transform.position;
+		b.rectCorners = new RectCorners(gameObject.GetComponent<RectTransform>());
 		b.size=size;
 		b.speed=speed;
 		b.velocity=velocity;

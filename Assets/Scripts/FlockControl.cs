@@ -25,7 +25,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MAX_SPEED = 6f;
 
 	private GameObject[] walls;
-	private readonly int NUM_WALLS = 1;
+	private readonly int NUM_WALLS = 5;
 	private readonly float WALL_MAX_WIDTH = 10f;
 	private readonly float WALL_MIN_WIDTH = 2f;
 	// Walls are constrained to have fixed area, so width = area/height
@@ -44,19 +44,11 @@ public class FlockControl : MonoBehaviour {
 	struct WorldState {
 		public int generation;
 		public BirdControl.Bird[] birds;
-		public WallState[] walls;
+		public RectCorners[] walls;
 		public Vector2 goalPosition;
 		public float goalDiameter;
 		public float roomWidth;
 		public float roomHeight;
-	}
-
-	[System.Serializable]
-	struct WallState {
-		public Vector2 topLeft;
-		public Vector2 topRight;
-		public Vector2 bottomLeft;
-		public Vector2 bottomRight;
 	}
 
 	public void Start() {
@@ -142,9 +134,9 @@ public class FlockControl : MonoBehaviour {
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			birds [i] = birdControls [i].ToStruct();
 		}
-		WallState[] wallStates = new WallState[walls.Length];
+		RectCorners[] wallStates = new RectCorners[walls.Length];
 		for (int i = 0; i < NUM_WALLS; i++) {
-			wallStates[i] = wallToWallState(walls[i]);
+			wallStates[i] = new RectCorners(walls[i].GetComponent<RectTransform>());
 		}
 		WorldState ws = new WorldState();
 		ws.generation = generation;
@@ -212,16 +204,5 @@ public class FlockControl : MonoBehaviour {
 			resetBirds();
 
 		}
-	}
-
-	private WallState wallToWallState(GameObject wall) {
-		Vector3[] corners = new Vector3[4];
-		wall.GetComponent<RectTransform>().GetWorldCorners(corners);
-		WallState ws = new WallState();
-		ws.topLeft = corners[0];
-		ws.topRight = corners[1];
-		ws.bottomLeft = corners[2];
-		ws.bottomRight = corners[3];
-		return ws;
 	}
 }
