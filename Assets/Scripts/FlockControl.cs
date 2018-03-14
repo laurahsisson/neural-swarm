@@ -113,6 +113,20 @@ public class FlockControl : MonoBehaviour {
 //			RectTransform rectTransform = walls[i].GetComponent<RectTransform>();
 		}
 
+		Collider2D goalCollider = goal.GetComponent<Collider2D>();
+		bool hasOverlap = true;
+		while (hasOverlap) {
+			hasOverlap = false;
+			for (int i = 0; i < NUM_WALLS; i++) {
+				ColliderDistance2D distance = goalCollider.Distance(walls[i].GetComponent<Collider2D>());
+				if (distance.distance<0) {
+					hasOverlap = true;
+					goal.transform.position = randomPosition();
+					break;
+				}
+			}
+		}
+
 		statsControl.Setup(NUM_BIRDS, MAX_TIME);
 		uiControl.AwaitingText();
 		startTime = Time.time;
