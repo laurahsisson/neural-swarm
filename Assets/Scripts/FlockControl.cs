@@ -25,7 +25,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MAX_SPEED = 6f;
 
 	private GameObject[] walls;
-	private readonly int NUM_WALLS = 5;
+	private readonly int NUM_WALLS = 1;
 	private readonly float WALL_MAX_WIDTH = 10f;
 	private readonly float WALL_MIN_WIDTH = 2f;
 	// Walls are constrained to have fixed area, so width = area/height
@@ -46,6 +46,9 @@ public class FlockControl : MonoBehaviour {
 		public BirdControl.Bird[] birds;
 		public WallState[] walls;
 		public Vector2 goalPosition;
+		public float goalDiameter;
+		public float roomWidth;
+		public float roomHeight;
 	}
 
 	[System.Serializable]
@@ -146,8 +149,13 @@ public class FlockControl : MonoBehaviour {
 		WorldState ws = new WorldState();
 		ws.generation = generation;
 		ws.birds = birds;
-		ws.goalPosition = (Vector2)goal.transform.position;
 		ws.walls = wallStates;
+
+		ws.goalPosition = (Vector2)goal.transform.position;
+		ws.goalDiameter = goal.transform.localScale.x;
+
+		ws.roomWidth = ROOM_WIDTH;
+		ws.roomHeight = ROOM_HEIGHT;
 		return JsonUtility.ToJson(ws);
 	}
 
