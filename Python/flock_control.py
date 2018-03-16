@@ -1,5 +1,6 @@
 import numpy as np
 import shapely.geometry as sh
+from timeit import default_timer as timer
 
 will_print = True
 grid_step = .5
@@ -12,6 +13,7 @@ class FlockControl():
 
     def make_decisions(self, world_state):
         global will_print
+        start = timer()
 
         birds = world_state["birds"]
         goal_pos = xy_dict_to_vector(world_state["goalPosition"])
@@ -24,6 +26,7 @@ class FlockControl():
         grid = make_grid(world_state["roomWidth"],world_state["roomHeight"],goal_shape,wall_shapes,birds)
         will_print = False
 
+        print(timer()-start)
         return (world_state["generation"],[point_to_goal(bird,goal_pos) for bird in birds])
         
 
@@ -34,7 +37,6 @@ def make_grid(width,height,goal_shape, wall_shapes, birds):
     def fill_bound(object_shape,object_marker):
       for grid_x in range(int(object_shape.bounds[0]/grid_step),int(object_shape.bounds[2]/grid_step)+2):
         x = grid_x*grid_step
-        # Do not overstep bounds
         if (grid_x>=width_points-1):
             break
         for grid_y in range(int(object_shape.bounds[1]/grid_step),int(object_shape.bounds[3]/grid_step)+2):
@@ -45,6 +47,7 @@ def make_grid(width,height,goal_shape, wall_shapes, birds):
             # Though we are creating multiple sh.Points for each x,y it is faster than storing somewhere
             p = sh.Point(x,y)
             to_object = p.distance(object_shape)
+            # If the point is close to the object, count it as being inside the object, even if it is not
             if to_object < grid_step:
                 grid[grid_x][grid_y] = object_marker
 
@@ -60,7 +63,9 @@ def make_grid(width,height,goal_shape, wall_shapes, birds):
     bird_shapes = [sh.Polygon(corner_struct_to_tuples(bird["rectCorners"])) for bird in birds]
 
     for i, bs in enumerate(bird_shapes):
-      fill_bound(bs,("BIRD",i))
+        if not birds[i]["active"]:
+            continue
+        fill_bound(bs,("BIRD",i))
     
     fill_bound(goal_shape,("GOAL",))
     for ws in wall_shapes:
