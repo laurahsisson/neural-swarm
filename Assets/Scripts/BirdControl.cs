@@ -7,11 +7,12 @@ public class BirdControl : MonoBehaviour {
 
 
 	private Vector2 velocity;
-	private Vector2 accel;
+	private Vector2 force;
 
 	private FlockControl flockControl;
 	private StatsControl statsControl;
 	private float size;
+	// The maximum speed a bird can have. Also, the maximum amount of a force a bird can apply in a second.
 	private float speed;
 	private float mass;
 	private int number = -1;
@@ -43,12 +44,11 @@ public class BirdControl : MonoBehaviour {
 	}
 
 
-	public void SetAcceleration(Vector2 accel) {
-		if (accel.magnitude > speed*1.001f) {
-//			Debug.Log("Setting acceleration too high:" + accel.magnitude + "," + speed);
-			accel = Vector2.ClampMagnitude(accel,speed);
+	public void SetForce(Vector2 force) {
+		if (force.magnitude > speed*1.001f) {
+			force = Vector2.ClampMagnitude(force,speed);
 		}
-		this.accel = accel;
+		this.force = force;
 	}
 
 	// Update is called once per frame
@@ -60,7 +60,8 @@ public class BirdControl : MonoBehaviour {
 
 		lastPos = transform.position;
 
-		velocity += accel/mass*Time.deltaTime;
+		// accel = force/mass (F=M*A)
+		velocity += force/mass*Time.deltaTime;
 		velocity = Vector2.ClampMagnitude(velocity,speed);
 		transform.position += (Vector3)velocity*Time.deltaTime;
 
@@ -141,7 +142,7 @@ public class BirdControl : MonoBehaviour {
 			transform.position = new Vector3(transform.position.x,worldBound.yMax-.01f);
 		}
 
-		accel = Vector2.zero;
+		force = Vector2.zero;
 	}
 		
 	private void handleBirdCollision(BirdControl other) {
@@ -155,6 +156,7 @@ public class BirdControl : MonoBehaviour {
 	}
 
 
+	// Given two objects, each with a position, mass, and velocity calculates the new velocity of object 1.
 	private static Vector2 getResultantVelocity(Vector2 position1, Vector2 position2, float mass1, float mass2, Vector2 velocity1, Vector2 velocity2) {
 		Vector2 posDifference = (Vector2) (position1 - position2);
 		float relativeMass;

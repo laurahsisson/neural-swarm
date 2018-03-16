@@ -46,7 +46,6 @@ public class ControllableBird : MonoBehaviour {
 
 	public void SetAcceleration(Vector2 accel) {
 		if (accel.magnitude > speed*1.001f) {
-//			Debug.Log("Setting acceleration too high:" + accel.magnitude + "," + speed);
 			accel = Vector2.ClampMagnitude(accel,speed);
 		}
 		this.accel = accel;

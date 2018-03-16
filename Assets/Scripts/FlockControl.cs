@@ -73,18 +73,19 @@ public class FlockControl : MonoBehaviour {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
 		}
 
-		resetBirds();
+		resetSimulation();
 	}
 		
 	public void IncrementGoal() {
 		reachedGoal++;
 		if (reachedGoal == NUM_BIRDS) {
 			statsControl.PrintStats();
-			resetBirds();
+			resetSimulation();
 		}
 	}
 
-	private void resetBirds() {
+	// Resets the walls, goal and all birds. 
+	private void resetSimulation() {
 		goal.transform.position = randomPosition();
 
 		reachedGoal = 0;
@@ -103,7 +104,6 @@ public class FlockControl : MonoBehaviour {
 			walls [i].transform.localScale = new Vector3(width, area / width, 1f);
 			walls [i].transform.position = randomPosition();
 			walls [i].transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
-//			RectTransform rectTransform = walls[i].GetComponent<RectTransform>();
 		}
 
 		Collider2D goalCollider = goal.GetComponent<Collider2D>();
@@ -175,7 +175,7 @@ public class FlockControl : MonoBehaviour {
 			// So split that by ',' to get the raw numbers
 			string[] xy = rawSplits [i].Split(new char[]{ ']' }) [0].Split(new char[]{ ',' });
 			Vector2 accel = new Vector2(float.Parse(xy [0]), float.Parse(xy [1]));
-			birdControls [i - 1].SetAcceleration(accel);
+			birdControls [i - 1].SetForce(accel);
 		}
 		hasReceivedStart = true;
 	}
@@ -199,7 +199,7 @@ public class FlockControl : MonoBehaviour {
 
 		if (remainTime < 0) {
 			statsControl.PrintStats();
-			resetBirds();
+			resetSimulation();
 
 		}
 	}
