@@ -19,7 +19,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly int NUM_BIRDS = 50;
 
 	private readonly float MIN_SIZE = .75f;
-	private readonly float MAX_SIZE = 1.3f;
+	private readonly float MAX_SIZE = 1.2f;
 
 	private readonly float MIN_SPEED = 4f;
 	private readonly float MAX_SPEED = 6f;
@@ -71,8 +71,6 @@ public class FlockControl : MonoBehaviour {
 		walls = new GameObject[NUM_WALLS];
 		for (int i = 0; i < NUM_WALLS; i++) {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
-			walls[i].AddComponent<RectTransform>();
-			walls[i].GetComponent<RectTransform>().sizeDelta = new Vector2(1,1);
 		}
 
 		resetBirds();
