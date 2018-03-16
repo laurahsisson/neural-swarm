@@ -25,6 +25,7 @@ public class BirdControl : MonoBehaviour {
 		public float size;
 		public float speed;
 		public float mass;
+		public bool active;
 	}
 
 	public void Setup(float size, float speed, int number) {
@@ -107,6 +108,7 @@ public class BirdControl : MonoBehaviour {
 		b.size=size;
 		b.speed=speed;
 		b.velocity=velocity;
+		b.active=moving;
 		return b;
 	}
 

@@ -5,11 +5,15 @@ import random
 import json
 import flock_control as fc
 
+# How long to wait after not receiving a message from Unity before closing and opening socket
 TIMEOUT = 10000
+# How often we polll in seconds
 POLL_TIME = 1/30
-WAIT_TIME = .5
+# How long after timing out to wait before reopening socket
+WAIT_TIME = 10
 flock_control = None
 
+# Listens in on the listening socket
 def getEventFromSocket(socket_listen):
     socket_listen.send_string("request")
     poller = zmq.Poller()
@@ -17,6 +21,8 @@ def getEventFromSocket(socket_listen):
     evt = dict(poller.poll(TIMEOUT))
     return evt
 
+
+# Parses information given by listening socket and passes information back along reply socket
 def handleEvent(evt,socket_listen, socket_reply): 
     global flock_control
     if evt.get(socket_listen) != zmq.POLLIN:
@@ -31,6 +37,7 @@ def handleEvent(evt,socket_listen, socket_reply):
     socket_reply.send_string(json.dumps(command))
     return True
 
+
 def closeSocketAndWait(socket_listen,context):
     print("Timed out. Waiting " + str(WAIT_TIME) + " then reopening socket.")
     time.sleep(WAIT_TIME)
@@ -39,6 +46,7 @@ def closeSocketAndWait(socket_listen,context):
     socket_listen.connect("tcp://localhost:12346")
     return socket_listen
 
+# Main loop handling timing of various socket operations
 def main():
     context = zmq.Context()
     socket_listen = context.socket(zmq.REQ)
