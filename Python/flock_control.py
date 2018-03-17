@@ -1,7 +1,8 @@
 import numpy as np
-from scipy import interpolate
 import shapely.geometry as sh
 from timeit import default_timer as timer
+from unity_helper import xy_dict_to_vector, corner_struct_to_tuples
+import line_bird as lb
 
 will_print = True
 
@@ -30,14 +31,22 @@ class FlockControl:
 
     def make_decisions(self, unity_state):
         global will_print
-        start = timer()
         ws = WorldState(unity_state)
 
+        start = timer()
         ws.grid = make_grid(ws)
-        print("TIME:",timer()-start)  
+        print("Grid in :",timer()-start, "seconds")  
+
+        start = timer()
+        decisions = [[0,0]]*len(ws.birds)
+        for b, bird in enumerate(ws.birds):
+            if not bird["active"]:
+                continue
+            decisions[b] = lb.make_decision(ws,b)
+        print("Decisions in :",timer()-start, "seconds")  
 
 
-        return (unity_state["generation"],[point_to_goal(bird,ws.goal_pos) for bird in ws.birds])
+        return (unity_state["generation"],decisions)
         
 
 def mark_boundary(shape,marker,grid,grid_step):
@@ -89,19 +98,3 @@ def make_grid(ws):
         mark_boundary(bd,'B',grid,ws.grid_step)
     
     return grid
-
-
-# Given a bird, returns a vector point from the bird to goal with proper size
-def point_to_goal(bird,goal_pos):
-    bird_pos = xy_dict_to_vector(bird["position"])
-    poss_diff = goal_pos-bird_pos
-    length = np.linalg.norm(poss_diff)
-    return list(poss_diff/length*bird["speed"])
-
-def xy_dict_to_vector(xy):
-    return np.asarray([xy["x"],xy["y"]])
-
-# Given a cornerStruct as described in CornerStruct.cs, turns it into a list of 4 xy tuples
-def corner_struct_to_tuples(corner_struct):
-    return [xy_dict_to_vector(corner_struct["topLeft"]),xy_dict_to_vector(corner_struct["topRight"]),
-        xy_dict_to_vector(corner_struct["bottomLeft"]),xy_dict_to_vector(corner_struct["bottomRight"])]
