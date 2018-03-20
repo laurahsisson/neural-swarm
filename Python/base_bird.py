@@ -5,6 +5,9 @@ class BaseBird:
     def __init__(self,ws):
         self.ws = ws
 
+    def get_grid_step(self):
+        return .1
+
     def make_decision(bird_number):
         return [0,0]
 

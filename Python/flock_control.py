@@ -13,8 +13,6 @@ class WorldState:
         self.height = unity_state["roomHeight"]
         self.birds = unity_state["birds"]
 
-        self.grid_step = .1
-
         self.unity_state = unity_state
 
         self.bird_shapes = [sh.Polygon(corner_struct_to_tuples(bird["rectCorners"])) for bird in unity_state["birds"]]
@@ -35,12 +33,12 @@ class FlockControl:
         
         # Generate the world state
         ws = WorldState(unity_state)
-        start = timer()
-        ws.grid = make_grid(ws)
-        print("Grid in :",timer()-start, "seconds")  
-
         # Select the bird control type we will be using
         bird_control = LineBird(ws)
+        start = timer()
+        ws.grid = make_grid(ws,bird_control.get_grid_step())
+        print("Grid in :",timer()-start, "seconds")  
+
 
         start = timer()
         decisions = [[0,0]]*len(ws.birds)
@@ -83,23 +81,23 @@ def mark_boundary(shape,marker,grid,grid_step):
         points_in_line(boundary[i],boundary[i+1])
 
 
-def make_grid(ws):
+def make_grid(ws,grid_step):
     global will_print
-    width_points = int(ws.width/ws.grid_step)
-    height_points = int(ws.height/ws.grid_step)
+    width_points = int(ws.width/grid_step)
+    height_points = int(ws.height/grid_step)
     grid = [0]*width_points
     grid_points = [0]*width_points
     for x in range(width_points):
         grid[x] = ['0']*height_points
 
-    mark_boundary(ws.goal_shape,'G',grid,ws.grid_step)
+    mark_boundary(ws.goal_shape,'G',grid,grid_step)
 
     for wl in ws.wall_shapes:
-        mark_boundary(wl,'W',grid,ws.grid_step)
+        mark_boundary(wl,'W',grid,grid_step)
 
     for i, bd in enumerate(ws.bird_shapes):
         if not ws.birds[i]["active"]:
             continue
-        mark_boundary(bd,'B',grid,ws.grid_step)
+        mark_boundary(bd,'B',grid,grid_step)
     
     return grid
