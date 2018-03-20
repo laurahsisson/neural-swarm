@@ -3,6 +3,7 @@ from unity_helper import xy_dict_to_vector, corner_struct_to_tuples
 
 class BaseBird:
     def __init__(self,ws):
+        # WorldState
         self.ws = ws
 
     def get_grid_step(self):
