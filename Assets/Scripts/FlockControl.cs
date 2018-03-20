@@ -9,6 +9,8 @@ public class FlockControl : MonoBehaviour {
 	public GameObject wallPrefab;
 	public GameObject background;
 
+	public GameObject[] staticWalls;
+
 	private StatsControl statsControl;
 	private UIControl uiControl;
 
@@ -25,7 +27,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MAX_SPEED = 6f;
 
 	private GameObject[] walls;
-	private readonly int NUM_WALLS = 5;
+	private readonly int NUM_RANDOM_WALLS = 5;
 	private readonly float WALL_MAX_WIDTH = 10f;
 	private readonly float WALL_MIN_WIDTH = 2f;
 	// Walls are constrained to have fixed area, so width = area/height
@@ -39,11 +41,10 @@ public class FlockControl : MonoBehaviour {
 	private int reachedGoal;
 	private readonly float MAX_TIME = 25f;
 
-
 	[System.Serializable]
 	struct WorldState {
 		public int generation;
-		public BirdControl.Bird[] birds;
+		public BirdControl 	.Bird[] birds;
 		public RectCorners[] walls;
 		public Vector2 goalPosition;
 		public float goalDiameter;
@@ -68,8 +69,8 @@ public class FlockControl : MonoBehaviour {
 			birdControls [i] = bird;
 		}
 
-		walls = new GameObject[NUM_WALLS];
-		for (int i = 0; i < NUM_WALLS; i++) {
+		walls = new GameObject[NUM_RANDOM_WALLS];
+		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
 		}
 
@@ -98,7 +99,7 @@ public class FlockControl : MonoBehaviour {
 			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
 		}
 
-		for (int i = 0; i < NUM_WALLS; i++) {
+		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
 			float width = Random.Range(WALL_MIN_WIDTH, WALL_MAX_WIDTH);
 			float area = Random.Range(WALL_MIN_AREA, WALL_MAX_AREA);
 			walls [i].transform.localScale = new Vector3(width, area / width, 1f);
@@ -110,7 +111,7 @@ public class FlockControl : MonoBehaviour {
 		bool hasOverlap = true;
 		while (hasOverlap) {
 			hasOverlap = false;
-			for (int i = 0; i < NUM_WALLS; i++) {
+			for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
 				ColliderDistance2D distance = goalCollider.Distance(walls[i].GetComponent<Collider2D>());
 				if (distance.distance<0) {
 					hasOverlap = true;
@@ -132,10 +133,14 @@ public class FlockControl : MonoBehaviour {
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			birds [i] = birdControls [i].ToStruct();
 		}
-		RectCorners[] wallStates = new RectCorners[walls.Length];
-		for (int i = 0; i < NUM_WALLS; i++) {
+		RectCorners[] wallStates = new RectCorners[walls.Length+staticWalls.Length];
+		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
 			wallStates[i] = new RectCorners(walls[i].GetComponent<RectTransform>());
 		}
+		for (int j = 0; j < staticWalls.Length; j++) {
+			wallStates[j+NUM_RANDOM_WALLS] =  new RectCorners(staticWalls[j].GetComponent<RectTransform>());
+		}
+
 		WorldState ws = new WorldState();
 		ws.generation = generation;
 		ws.birds = birds;

@@ -53,10 +53,9 @@ public class ControllableBird : MonoBehaviour {
 
 	// Update is called once per frame
 	public void Update () {
-        
 		Vector3 mouse = Input.mousePosition;
         mouse.z = 10f; // Set this to be the distance you want the object to be placed in front of the camera.
-        transform.position = Camera.main.ScreenToWorldPoint(mouse);
+		transform.position = Camera.main.ScreenToWorldPoint(new Vector3(mouse.x,mouse.y,-FindObjectOfType<Camera>().transform.position.z));
         
         // manually handle out of bounds, but doesn't work (NullPointerException)
 		/*Rect worldBound = flockControl.GetWorldBound();
