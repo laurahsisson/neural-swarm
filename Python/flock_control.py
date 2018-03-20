@@ -2,7 +2,8 @@ import numpy as np
 import shapely.geometry as sh
 from timeit import default_timer as timer
 from unity_helper import xy_dict_to_vector, corner_struct_to_tuples
-import line_bird as lb
+
+from line_bird import LineBird
 
 will_print = True
 
@@ -31,18 +32,22 @@ class FlockControl:
 
     def make_decisions(self, unity_state):
         global will_print
+        
+        # Generate the world state
         ws = WorldState(unity_state)
-
         start = timer()
         ws.grid = make_grid(ws)
         print("Grid in :",timer()-start, "seconds")  
+
+        # Select the bird control type we will be using
+        bird_control = LineBird(ws)
 
         start = timer()
         decisions = [[0,0]]*len(ws.birds)
         for b, bird in enumerate(ws.birds):
             if not bird["active"]:
                 continue
-            decisions[b] = lb.make_decision(ws,b)
+            decisions[b] = bird_control.make_decision(b)
         print("Decisions in :",timer()-start, "seconds")  
 
 

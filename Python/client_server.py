@@ -41,9 +41,6 @@ def handleEvent(evt,socket_listen, socket_reply):
 def closeSocketAndWait(socket_listen,context):
     print("Timed out. Waiting " + str(WAIT_TIME) + " then reopening socket.")
     time.sleep(WAIT_TIME)
-    socket_listen.close()
-    socket_listen = context.socket(zmq.REQ)
-    socket_listen.connect("tcp://localhost:12346")
     return socket_listen
 
 # Main loop handling timing of various socket operations
