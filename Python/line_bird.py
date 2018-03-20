@@ -3,5 +3,5 @@ import numpy as np
 
 class LineBird(BaseBird):
     def make_decision(self,bird_number):
-        return point_to_goal(self.ws.birds[bird_number],self.ws.goal_pos)
+        return aim_at_position(self.ws.birds[bird_number],self.ws.goal_pos)
 
