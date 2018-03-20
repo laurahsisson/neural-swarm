@@ -17,7 +17,7 @@ class WorldState:
         self.wall_shapes = [sh.Polygon(corner_struct_to_tuples(wall)) for wall in unity_state["walls"]]
 
 
-    def mark_boundary(self,shape,marker,grid_step):
+    def _mark_boundary(self,shape,marker,grid_step):
         # Mark every point on the line between p1 and p2
         def points_in_line(p1,p2, axis = 0):
             x_diff = p2[0]-p1[0]
@@ -52,13 +52,13 @@ class WorldState:
         for x in range(width_points):
             self.grid[x] = ['0']*height_points
 
-        self.mark_boundary(self.goal_shape,'G',grid_step)
+        self._mark_boundary(self.goal_shape,'G',grid_step)
 
         for wl in self.wall_shapes:
-            self.mark_boundary(wl,'W',grid_step)
+            self._mark_boundary(wl,'W',grid_step)
 
         for i, bd in enumerate(self.bird_shapes):
             if not self.birds[i]["active"]:
                 continue
-            self.mark_boundary(bd,'B',grid_step)
+            self._mark_boundary(bd,'B',grid_step)
         
