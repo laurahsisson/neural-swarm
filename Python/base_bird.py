@@ -7,7 +7,7 @@ class BaseBird:
         self.ws = ws
 
     def get_grid_step(self):
-        return .1
+        return .5
 
     def make_decision(bird_number):
         return [0,0]
@@ -17,5 +17,6 @@ def aim_at_position(bird,aim_pos):
     bird_pos = xy_dict_to_vector(bird["position"])
     poss_diff = aim_pos-bird_pos
     length = np.linalg.norm(poss_diff)
+    assert length != 0
     return list(poss_diff/length*bird["speed"])
 
