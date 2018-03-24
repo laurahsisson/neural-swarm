@@ -2,6 +2,7 @@ import numpy as np
 from timeit import default_timer as timer
 from world_state import WorldState
 from line_bird import LineBird
+from force_bird import ForceBird
 
 
 class FlockControl:
@@ -14,10 +15,11 @@ class FlockControl:
         ws = WorldState(unity_state)
 
         # Select the bird control type we will be using
-        bird_control = LineBird(ws)
-        start = timer()
-        ws.make_grid(bird_control.get_grid_step())
-        # print("Grid in :",timer()-start, "seconds")  
+        bird_control = ForceBird(ws)
+        if bird_control.needs_grid():
+            start = timer()
+            ws.make_grid(bird_control.get_grid_step())
+            print("Grid in :",timer()-start, "seconds")  
 
         start = timer()
         decisions = [[0,0]]*len(ws.birds)
@@ -25,7 +27,7 @@ class FlockControl:
             if not bird["active"]:
                 continue
             decisions[b] = bird_control.make_decision(b)
-        # print("Decisions in :",timer()-start, "seconds")  
+        print("Decisions in :",timer()-start, "seconds")  
 
 
         return (unity_state["generation"],decisions)

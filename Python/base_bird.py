@@ -12,6 +12,9 @@ class BaseBird:
     def make_decision(bird_number):
         return [0,0]
 
+    def needs_grid(self):
+        return True
+
 # Given a bird, returns a vector pointing from the bird to the aim position with proper size
 def aim_at_position(bird,aim_pos):
     bird_pos = xy_dict_to_vector(bird["position"])
