@@ -18,7 +18,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 40;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 5;
+	private readonly int NUM_BIRDS = 50;
 
 	private readonly float MIN_SIZE = .75f;
 	private readonly float MAX_SIZE = 1.2f;
@@ -27,12 +27,12 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MAX_SPEED = 6f;
 
 	private GameObject[] walls;
-	private readonly int NUM_RANDOM_WALLS = 30;
-	private readonly float WALL_MAX_WIDTH = 7f;
-	private readonly float WALL_MIN_WIDTH = 7f;
+	private readonly int NUM_RANDOM_WALLS = 5;
+	private readonly float WALL_MAX_WIDTH = 10f;
+	private readonly float WALL_MIN_WIDTH = 2f;
 	// Walls are constrained to have fixed area, so width = area/height
-	private readonly float WALL_MAX_AREA = 60f;
-	private readonly float WALL_MIN_AREA = 60f;
+	private readonly float WALL_MAX_AREA = 12f;
+	private readonly float WALL_MIN_AREA = 8f;
 
 	private GameObject goal;
 	private float startTime = 0;
@@ -103,8 +103,8 @@ public class FlockControl : MonoBehaviour {
 			float width = Random.Range(WALL_MIN_WIDTH, WALL_MAX_WIDTH);
 			float area = Random.Range(WALL_MIN_AREA, WALL_MAX_AREA);
 			walls [i].transform.localScale = new Vector3(width, area / width, 1f);
-			walls [i].transform.position = random2Position(i);
-			//walls [i].transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
+			walls [i].transform.position = randomPosition();
+			walls [i].transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
 		}
 
 		Collider2D goalCollider = goal.GetComponent<Collider2D>();
