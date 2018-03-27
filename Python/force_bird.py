@@ -116,7 +116,7 @@ class ForceBird(BaseBird):
         other_shape = self.ws.bird_shapes[other_number]
         dto = self.delta_norm(bird_number, other_shape)
         d = np.linalg.norm(dto)
-        
+
         my_shape = self.ws.bird_shapes[bird_number]
         other_shape = self.ws.bird_shapes[other_number]
         cutoff_distance = my_shape.distance(other_shape)
@@ -133,7 +133,7 @@ class ForceBird(BaseBird):
         velocity = xy_dict_to_vector(self.ws.birds[other_number]["velocity"])
         speed = np.linalg.norm(velocity)
         if speed == 0:
-            return np.array([0.0,0.0])
+            return np.array([0.0, 0.0])
         delta_norm = velocity / speed
 
         my_mass = self.ws.birds[bird_number]["mass"]
@@ -143,7 +143,7 @@ class ForceBird(BaseBird):
 
         other_shape = self.ws.bird_shapes[other_number]
         distance = np.linalg.norm(self.delta_norm(bird_number, other_shape))
-        
+
         total_factor = ALIGNMENT_CONSTANT * mass_factors * np.power(
             speed, ALIGNMENT_SPEED_EXPONENT) / np.power(
                 distance, ALIGNMENT_DISTANCE_EXPONENT)
@@ -172,6 +172,44 @@ class ForceBird(BaseBird):
         total_factor = GOAL_CONSTANT * mass_factors / np.power(
             distance, GOAL_DISTANCE_EXPONENT)
         return delta_norm * total_factor
+
+
+__all_factors = [
+    "attract_mass_exp", "attract_dist_exp", "attract_const", "attract_cutoff",
+    "repulse_mass_exp", "repulse_dist_exp", "repulse_const", "repulse_cutoff",
+    "wall_mass_exp", "wall_dist_exp", "wall_const", "wall_cutoff",
+    "obstacle_mass_exp", "obstacle_dist_exp", "obstacle_const",
+    "obstacle_cutoff", "align_mass_exp", "align_dist_exp", "align_speed_exp",
+    "align_const", "align_cutoff"
+]
+
+
+def factor_dict_to_list(factor_dict):
+    global __all_factors
+
+    factor_list = [0] * len(__all_factors)
+    for factor, val in factor_dict.items():
+        i = __all_factors.index(factor)
+        factor_list[i] = factor_dict[factor]
+    return factor_list
+
+
+def factor_list_to_dict(factor_list):
+    global __all_factors
+
+    factor_dict = dict()
+    for i, factor in enumerate(factor_list):
+        factor_dict[__all_factors[i]] = factor
+    return factor_dict
+
+
+def random_factor_list():
+    global __all_factors
+
+    factor_list = [0] * len(__all_factors)
+    for i in range(len(factor_list)):
+        factor_list[i] = np.random.random_sample()
+    return factor_list
 
 
 def subtract_points(p1, p2):
