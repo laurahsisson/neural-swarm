@@ -12,13 +12,12 @@ class FlockControl:
     def make_decisions(self, unity_state):
         # Generate the world state
         ws = WorldState(unity_state)
-        print(ws.wall_shapes[-1])
-        
+
         # Select the bird control type we will be using
         bird_control = LineBird(ws)
         start = timer()
         ws.make_grid(bird_control.get_grid_step())
-        print("Grid in :",timer()-start, "seconds")  
+        # print("Grid in :",timer()-start, "seconds")  
 
         start = timer()
         decisions = [[0,0]]*len(ws.birds)
@@ -27,8 +26,7 @@ class FlockControl:
                 continue
             
             decisions[b] = bird_control.make_decision(b)
-        print("Decisions in :",timer()-start, "seconds")  
+        # print("Decisions in :",timer()-start, "seconds")  
 
 
         return (unity_state["generation"],decisions)
-        
