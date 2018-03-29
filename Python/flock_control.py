@@ -25,6 +25,7 @@ class FlockControl:
         for b, bird in enumerate(ws.birds):
             if not bird["active"]:
                 continue
+            
             decisions[b] = bird_control.make_decision(b)
         print("Decisions in :",timer()-start, "seconds")  
 
