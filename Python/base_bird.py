@@ -6,12 +6,23 @@ class BaseBird:
         # WorldState
         self.ws = ws
 
+    # How granular the grid is
     def get_grid_step(self):
         return .5
 
-    def make_decision(bird_number):
+    # Called once before make_decision is called
+    def prepare_step(self):
+        pass
+
+    # Called once after make_decision is finished for every bird
+    def end_step(self):
+        pass
+
+    # Called once each step for every bird
+    def make_decision(self,bird_number):
         return [0,0]
 
+    # If True, flock_control will set up the grid for this bird
     def needs_grid(self):
         return True
 

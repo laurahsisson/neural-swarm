@@ -14,20 +14,25 @@ class FlockControl:
         # Generate the world state
         ws = WorldState(unity_state)
 
-        # Select the bird control type we will be using
         bird_control = ForceBird(ws)
+        # Select the bird control type we will be using
         if bird_control.needs_grid():
             start = timer()
             ws.make_grid(bird_control.get_grid_step())
             print("Grid in :",timer()-start, "seconds")  
 
         start = timer()
+
+        bird_control.prepare_step()
         decisions = [[0,0]]*len(ws.birds)
         for b, bird in enumerate(ws.birds):
             if not bird["active"]:
                 continue
             decisions[b] = bird_control.make_decision(b)
-        print("Decisions in :",timer()-start, "seconds")  
+        bird_control.end_step()
+
+        print("")
+        # print("Decisions in :",timer()-start, "seconds")  
 
 
         return (unity_state["generation"],decisions)

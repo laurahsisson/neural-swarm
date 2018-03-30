@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
 public class FlockControl : MonoBehaviour {
 	public GameObject goalPrefab;
 	public GameObject birdPrefab;
@@ -163,8 +162,13 @@ public class FlockControl : MonoBehaviour {
 			// Do not accept commands from other generations
 			return;
 		}
-		rawCommand = rawCommand.Substring(generationListsOfListsSplit[0].Length+2,rawCommand.Length-3);		
-
+		try {
+			rawCommand = rawCommand.Substring(generationListsOfListsSplit[0].Length+2,rawCommand.Length-3);		
+		} catch (System.IndexOutOfRangeException ex){
+			Debug.Log(rawCommand);
+			Debug.Log(generationListsOfListsSplit);
+			throw ex;
+		}
 		// At this point we have [[1,2],[3,4]] so we must now remove the outermost brackets
 		rawCommand = rawCommand.Substring(1, rawCommand.Length - 2);
 		// If we know for sure we had more than 1 bird, we could split by '],[' but instead we must split by '[' 
