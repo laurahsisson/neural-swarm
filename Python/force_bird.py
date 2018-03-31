@@ -100,7 +100,7 @@ class ForceBird(BaseBird):
         if birds in self.b2b_distance:
             dist = self.b2b_distance[birds]
         else:
-            dist = distance(my_shape, self.ws.bird_shapes[other_number])
+            dist = np.linalg.norm(self.ws.bird_positions[bird_number]-self.ws.bird_positions[other_number])
             self.b2b_distance[birds] = dist
 
         if dist <= max(ATTRACTION_CUTOFF, REPULSION_CUTOFF):
@@ -118,13 +118,15 @@ class ForceBird(BaseBird):
     @timerfunc
     def wall_force(self,bird_number,wall):
         my_shape = self.ws.bird_shapes[bird_number]
-        if distance(my_shape, wall) > OBSTACLE_CUTOFF:
+
+        if my_shape.distance(wall) > OBSTACLE_CUTOFF:
             return zero_vector()
         return self.wall_delta_force(bird_number, wall)
 
     def goal_force(self,bird_number):
-        my_shape = self.ws.bird_shapes[bird_number]
-        if distance(my_shape, self.ws.goal_shape) > GOAL_CUTOFF:
+        dto = self.ws.goal_pos-self.ws.bird_positions[bird_number]
+        distance = np.linalg.norm(dto)
+        if distance > GOAL_CUTOFF:
             return zero_vector()
         return self.goal_delta_force(bird_number, self.ws.goal_shape)
 
@@ -185,17 +187,16 @@ class ForceBird(BaseBird):
 
     def bird_delta_force(self, bird_number, other_number):
         other_shape = self.ws.bird_shapes[other_number]
-        dto = self.delta_norm(bird_number, other_shape)
+        dto = self.ws.bird_positions[other_number]-self.ws.bird_positions[bird_number]
         d = np.linalg.norm(dto)
 
         my_shape = self.ws.bird_shapes[bird_number]
         other_shape = self.ws.bird_shapes[other_number]
-        cutoff_distance = distance(my_shape, other_shape)
 
         delta = zero_vector()
-        if cutoff_distance <= ATTRACTION_CUTOFF:
+        if d <= ATTRACTION_CUTOFF:
             delta += self.atraction_force(bird_number, other_number, dto, d)
-        if cutoff_distance <= REPULSION_CUTOFF:
+        if d <= REPULSION_CUTOFF:
             delta += self.repulsion_force(bird_number, other_number, -1 * dto,
                                           d)
         return delta
@@ -207,13 +208,16 @@ class ForceBird(BaseBird):
             return zero_vector()
         delta_norm = velocity / speed
 
+        birds = (min(bird_number,other_number),max(bird_number,other_number))
+
         my_mass = self.ws.birds[bird_number]["mass"]
         other_mass = self.ws.birds[other_number]["mass"]
         mass_factors = np.power(my_mass, ALIGNMENT_MASS_EXPONENT) * np.power(
             other_mass, ALIGNMENT_MASS_EXPONENT)
 
         other_shape = self.ws.bird_shapes[other_number]
-        distance = np.linalg.norm(self.delta_norm(bird_number, other_shape))
+        distance = self.b2b_distance[birds]
+        # print(distance)
 
         total_factor = ALIGNMENT_CONSTANT * mass_factors * np.power(
             speed, ALIGNMENT_SPEED_EXPONENT) / np.power(
@@ -236,7 +240,7 @@ class ForceBird(BaseBird):
         my_mass = self.ws.birds[bird_number]["mass"]
         mass_factors = np.power(my_mass, GOAL_MASS_EXPONENT)
 
-        dto = self.delta_norm(bird_number, goal_shape)
+        dto = self.ws.goal_pos-self.ws.bird_positions[bird_number]
         distance = np.linalg.norm(dto)
         delta_norm = dto / distance
 
@@ -281,11 +285,6 @@ def random_factor_list():
     for i in range(len(factor_list)):
         factor_list[i] = np.random.random_sample()
     return factor_list
-
-
-@timerfunc
-def distance(s1,s2):
-    return s1.distance(s2)
 
 def zero_vector():
     return np.array([0.0,0.0])

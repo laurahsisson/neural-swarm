@@ -178,9 +178,6 @@ public class FlockControl : MonoBehaviour {
 			rawCommand = rawCommand.Substring(generationListsOfListsSplit[0].Length+2,rawCommand.Length-3);		
 		} catch (System.Exception ex){
 			Debug.Log(rawCommand);
-			foreach (string item in generationListsOfListsSplit) {
-				Debug.Log(item);
-			}
 			throw ex;
 		}
 		// At this point we have [[1,2],[3,4]] so we must now remove the outermost brackets
