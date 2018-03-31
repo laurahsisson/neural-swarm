@@ -4,13 +4,20 @@ from world_state import WorldState
 from line_bird import LineBird
 from force_bird import ForceBird
 
+generation = 1
 
 class FlockControl:
     def __init__(self,num_birds):
         # Eventually, when we make each bird a class we can initialize an array here
         self.num_birds = num_birds
+        self.decision_time = 0
 
     def make_decisions(self, unity_state):
+        global generation
+        new_generation = unity_state["generation"]
+        if new_generation != generation:
+            self.end_generation() 
+            generation = new_generation
         # Generate the world state
         ws = WorldState(unity_state)
 
@@ -30,9 +37,12 @@ class FlockControl:
                 continue
             decisions[b] = bird_control.make_decision(b)
         bird_control.end_step()
-
-        print("")
+        self.decision_time += timer() - start
         # print("Decisions in :",timer()-start, "seconds")  
 
 
         return (unity_state["generation"],decisions)
+
+    def end_generation(self):
+        print(self.decision_time)
+        self.decision_time = 0

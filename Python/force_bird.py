@@ -23,7 +23,7 @@ OBSTACLE_CUTOFF = 3
 # As above, the exponent for the bird's mass in the attraction to the goal
 GOAL_MASS_EXPONENT = -.025
 GOAL_DISTANCE_EXPONENT = 1
-GOAL_CONSTANT = 5
+GOAL_CONSTANT = 30
 GOAL_CUTOFF = 40
 
 ALIGNMENT_MASS_EXPONENT = 1
@@ -70,8 +70,9 @@ class ForceBird(BaseBird):
         self.b2b_delta = dict()
 
     def end_step(self):
-        print(function_to_time)
-        print(function_to_time["bird_force"]/function_to_time["make_decision"])
+        pass
+        # print(function_to_time)
+        # print(function_to_time["bird_force"]/function_to_time["make_decision"])
 
     @timerfunc
     def make_decision(self, bird_number):
