@@ -19,8 +19,8 @@ public class FlockControl : MonoBehaviour {
 	private BirdControl[] birdControls;
 	private readonly int NUM_BIRDS = 50;
 
-	private readonly float MIN_SIZE = .75f;
-	private readonly float MAX_SIZE = 1.2f;
+	private readonly float MIN_SIZE = .8f;
+	private readonly float MAX_SIZE = 1.1f;
 
 	private readonly float MIN_SPEED = 4f;
 	private readonly float MAX_SPEED = 6f;
@@ -68,10 +68,21 @@ public class FlockControl : MonoBehaviour {
 			birdControls [i] = bird;
 		}
 
-		walls = new GameObject[NUM_RANDOM_WALLS];
-		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
+		walls = new GameObject[NUM_RANDOM_WALLS+4];
+		for (int i = 0; i < walls.Length; i++) {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
 		}
+		walls[NUM_RANDOM_WALLS].transform.position = new Vector3(0,ROOM_HEIGHT/2);
+		walls[NUM_RANDOM_WALLS].transform.localScale = new Vector3(1,ROOM_HEIGHT,1);
+
+		walls[NUM_RANDOM_WALLS+1].transform.position = new Vector3(ROOM_WIDTH,ROOM_HEIGHT/2);
+		walls[NUM_RANDOM_WALLS+1].transform.localScale = new Vector3(1,ROOM_HEIGHT,1);
+
+		walls[NUM_RANDOM_WALLS+2].transform.position = new Vector3(ROOM_WIDTH/2,0);
+		walls[NUM_RANDOM_WALLS+2].transform.localScale = new Vector3(ROOM_WIDTH,1,1);
+
+		walls[NUM_RANDOM_WALLS+3].transform.position = new Vector3(ROOM_WIDTH/2,ROOM_HEIGHT);
+		walls[NUM_RANDOM_WALLS+3].transform.localScale = new Vector3(ROOM_WIDTH,1,1);
 
 		resetSimulation();
 	}
@@ -106,6 +117,7 @@ public class FlockControl : MonoBehaviour {
 			walls [i].transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
 		}
 
+
 		Collider2D goalCollider = goal.GetComponent<Collider2D>();
 		bool hasOverlap = true;
 		while (hasOverlap) {
@@ -133,11 +145,11 @@ public class FlockControl : MonoBehaviour {
 			birds [i] = birdControls [i].ToStruct();
 		}
 		RectCorners[] wallStates = new RectCorners[walls.Length+staticWalls.Length];
-		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
+		for (int i = 0; i < walls.Length; i++) {
 			wallStates[i] = new RectCorners(walls[i].GetComponent<RectTransform>());
 		}
 		for (int j = 0; j < staticWalls.Length; j++) {
-			wallStates[j+NUM_RANDOM_WALLS] =  new RectCorners(staticWalls[j].GetComponent<RectTransform>());
+			wallStates[j+walls.Length] =  new RectCorners(staticWalls[j].GetComponent<RectTransform>());
 		}
 
 		WorldState ws = new WorldState();
@@ -164,9 +176,11 @@ public class FlockControl : MonoBehaviour {
 		}
 		try {
 			rawCommand = rawCommand.Substring(generationListsOfListsSplit[0].Length+2,rawCommand.Length-3);		
-		} catch (System.IndexOutOfRangeException ex){
+		} catch (System.Exception ex){
 			Debug.Log(rawCommand);
-			Debug.Log(generationListsOfListsSplit);
+			foreach (string item in generationListsOfListsSplit) {
+				Debug.Log(item);
+			}
 			throw ex;
 		}
 		// At this point we have [[1,2],[3,4]] so we must now remove the outermost brackets

@@ -30,7 +30,7 @@ ALIGNMENT_MASS_EXPONENT = 1
 ALIGNMENT_SPEED_EXPONENT = 1
 ALIGNMENT_DISTANCE_EXPONENT = 1
 ALIGNMENT_CONSTANT = 3
-ALIGNMENT_CUTOFF = 10
+ALIGNMENT_CUTOFF = 5
 
 function_to_time = dict()
 
@@ -71,45 +71,63 @@ class ForceBird(BaseBird):
 
     def end_step(self):
         print(function_to_time)
+        print(function_to_time["bird_force"]/function_to_time["make_decision"])
 
+    @timerfunc
     def make_decision(self, bird_number):
-        my_shape = self.ws.bird_shapes[bird_number]
-
         new_direction = zero_vector()
-        for i, bird in enumerate(self.ws.birds):
-            if i == bird_number:
+
+        for other_number, bird in enumerate(self.ws.birds):
+            if other_number == bird_number:
                 continue
+            new_direction += self.bird_force(bird_number,other_number)
 
-            birds = (min(bird_number,i),max(bird_number,i))
-            dist = 0
-            if birds in self.b2b_distance:
-                dist = self.b2b_distance[birds]
+        for wall in self.ws.wall_shapes:
+            new_direction += self.wall_force(bird_number,wall)
+
+        new_direction += self.goal_force(bird_number)
+
+        velocity = self.normalize_to_speed(bird_number,new_direction)
+        return list(velocity)
+
+    @timerfunc
+    def bird_force(self,bird_number,other_number):
+        my_shape = self.ws.bird_shapes[bird_number]
+        birds = (min(bird_number,other_number),max(bird_number,other_number))
+        dist = 0
+        total_force = zero_vector()
+        if birds in self.b2b_distance:
+            dist = self.b2b_distance[birds]
+        else:
+            dist = distance(my_shape, self.ws.bird_shapes[other_number])
+            self.b2b_distance[birds] = dist
+
+        if dist <= max(ATTRACTION_CUTOFF, REPULSION_CUTOFF):
+            if birds in self.b2b_delta:
+                force = -1*self.b2b_delta[birds]
             else:
-                dist = my_shape.distance(self.ws.bird_shapes[i])
-                self.b2b_distance[birds] = dist
+                force = self.bird_delta_force(bird_number, other_number)
+                self.b2b_delta[birds] = force
+            total_force += force
 
-            if dist <= max(ATTRACTION_CUTOFF, REPULSION_CUTOFF):
-                force = zero_vector()
-                if birds in self.b2b_delta:
-                    force = -1*self.b2b_delta[birds]
-                else:
-                    force = self.bird_delta_force(bird_number, i)
-                    self.b2b_delta[birds] = force
-                new_direction += force
+        if dist <= ALIGNMENT_CUTOFF:
+            total_force += self.bird_alignment_force(bird_number, other_number)
+        return total_force
 
-            if dist <= ALIGNMENT_CUTOFF:
-                new_direction += self.bird_alignment_force(bird_number, i)
+    @timerfunc
+    def wall_force(self,bird_number,wall):
+        my_shape = self.ws.bird_shapes[bird_number]
+        if distance(my_shape, wall) > OBSTACLE_CUTOFF:
+            return zero_vector()
+        return self.wall_delta_force(bird_number, wall)
 
+    def goal_force(self,bird_number):
+        my_shape = self.ws.bird_shapes[bird_number]
+        if distance(my_shape, self.ws.goal_shape) > GOAL_CUTOFF:
+            return zero_vector()
+        return self.goal_delta_force(bird_number, self.ws.goal_shape)
 
-        for i, wall in enumerate(self.ws.wall_shapes):
-            if my_shape.distance(wall) <= OBSTACLE_CUTOFF:
-                new_direction += self.wall_delta_force(bird_number, wall)
-
-
-
-        if my_shape.distance(self.ws.goal_shape) <= GOAL_CUTOFF:
-            new_direction += self.goal_delta_force(bird_number,
-                                                   self.ws.goal_shape)
+    def normalize_to_speed(self,bird_number,new_direction):
         magnitude = np.linalg.norm(new_direction)
         if magnitude != 0:
             norm_direction = new_direction / magnitude
@@ -122,8 +140,8 @@ class ForceBird(BaseBird):
             print(new_direction)
             print(velocity)
             exit()
+        return velocity
 
-        return list(velocity)
 
     # Compute the closest point on the other shape to our center
     # To be more accurate, we could compute the closest point on the other bird to our shape
@@ -171,7 +189,7 @@ class ForceBird(BaseBird):
 
         my_shape = self.ws.bird_shapes[bird_number]
         other_shape = self.ws.bird_shapes[other_number]
-        cutoff_distance = my_shape.distance(other_shape)
+        cutoff_distance = distance(my_shape, other_shape)
 
         delta = zero_vector()
         if cutoff_distance <= ATTRACTION_CUTOFF:
@@ -265,6 +283,9 @@ def random_factor_list():
 
 
 @timerfunc
+def distance(s1,s2):
+    return s1.distance(s2)
+
 def zero_vector():
     return np.array([0.0,0.0])
 
