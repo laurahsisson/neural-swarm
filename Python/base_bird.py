@@ -18,6 +18,9 @@ class BaseBird:
     def end_step(self):
         pass
 
+    def parallelizable(self):
+        return False
+
     # Called once each step for every bird
     def make_decision(self,bird_number):
         return [0,0]

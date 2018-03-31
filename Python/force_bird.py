@@ -34,7 +34,6 @@ ALIGNMENT_CUTOFF = 5
 
 function_to_time = dict()
 
-
 def timerfunc(func):
     """
     A timer decorator
@@ -64,17 +63,18 @@ class ForceBird(BaseBird):
 
     def prepare_step(self):
         global function_to_time
-        function_to_time = dict()
-        cached_time = cached_count = 0
-        self.b2b_distance = dict()
+        function_to_time = dict() 
+        # self.b2b_distance = dict()
         self.b2b_delta = dict()
+
+    def parallelizable(self):
+        return True
 
     def end_step(self):
         pass
         # print(function_to_time)
         # print(function_to_time["bird_force"]/function_to_time["make_decision"])
 
-    @timerfunc
     def make_decision(self, bird_number):
         new_direction = zero_vector()
 
@@ -91,31 +91,28 @@ class ForceBird(BaseBird):
         velocity = self.normalize_to_speed(bird_number,new_direction)
         return list(velocity)
 
-    @timerfunc
     def bird_force(self,bird_number,other_number):
         my_shape = self.ws.bird_shapes[bird_number]
         birds = (min(bird_number,other_number),max(bird_number,other_number))
         dist = 0
         total_force = zero_vector()
-        if birds in self.b2b_distance:
-            dist = self.b2b_distance[birds]
-        else:
-            dist = np.linalg.norm(self.ws.bird_positions[bird_number]-self.ws.bird_positions[other_number])
-            self.b2b_distance[birds] = dist
+
+        dist = np.linalg.norm(self.ws.bird_positions[bird_number]-self.ws.bird_positions[other_number])
 
         if dist <= max(ATTRACTION_CUTOFF, REPULSION_CUTOFF):
+            # The following 3 accesses to b2b_delta are thread-safe
             if birds in self.b2b_delta:
-                force = -1*self.b2b_delta[birds]
+                force = self.b2b_delta[birds]
             else:
                 force = self.bird_delta_force(bird_number, other_number)
                 self.b2b_delta[birds] = force
+
             total_force += force
 
         if dist <= ALIGNMENT_CUTOFF:
             total_force += self.bird_alignment_force(bird_number, other_number)
         return total_force
 
-    @timerfunc
     def wall_force(self,bird_number,wall):
         my_shape = self.ws.bird_shapes[bird_number]
 
@@ -216,8 +213,7 @@ class ForceBird(BaseBird):
             other_mass, ALIGNMENT_MASS_EXPONENT)
 
         other_shape = self.ws.bird_shapes[other_number]
-        distance = self.b2b_distance[birds]
-        # print(distance)
+        distance = np.linalg.norm(self.ws.bird_positions[bird_number]-self.ws.bird_positions[other_number])
 
         total_factor = ALIGNMENT_CONSTANT * mass_factors * np.power(
             speed, ALIGNMENT_SPEED_EXPONENT) / np.power(
