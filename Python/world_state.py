@@ -25,6 +25,7 @@ class WorldState:
         self.goal_pos = xy_dict_to_vector(unity_state["goalPosition"])
         self.goal_shape = sh.Point(self.goal_pos).buffer(unity_state["goalDiameter"]/2)
 
+        self.wall_rects = [corner_struct_to_tuples(wall) for wall in unity_state["walls"]]
         self.wall_shapes = [sh.Polygon(corner_struct_to_tuples(wall)) for wall in unity_state["walls"]]
         self.GOAL = "GOAL"
         self.WALL = "WALL"
