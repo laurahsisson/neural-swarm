@@ -18,7 +18,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 40;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 5;
+	private readonly int NUM_BIRDS = 1;
 
 	private readonly float MIN_SIZE = .75f;
 	private readonly float MAX_SIZE = 1.2f;
@@ -86,13 +86,18 @@ public class FlockControl : MonoBehaviour {
 	}
 
 	// Resets the walls, goal and all birds. 
+	// David: This was modified to put one bird and one goal in the same static position every time
 	private void resetSimulation() {
-		goal.transform.position = randomPosition();
+		// goal.transform.position = randomPosition();
+		goal.transform.position = new Vector3(ROOM_WIDTH*3/4, ROOM_HEIGHT/4, 0);
 
 		reachedGoal = 0;
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			BirdControl bird = birdControls [i];
-			bird.transform.position = randomPosition();
+
+			//bird.transform.position = randomPosition();
+			bird.transform.position = new Vector3(1, 2+ (ROOM_HEIGHT/2), 0);
+
 			float size = Random.Range(MIN_SIZE, MAX_SIZE);
 			float speed = Random.Range(MIN_SPEED, MAX_SPEED);
 			bird.Setup(size, speed, i);

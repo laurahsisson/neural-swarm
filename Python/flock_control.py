@@ -2,6 +2,7 @@ import numpy as np
 from timeit import default_timer as timer
 from world_state import WorldState
 from line_bird import LineBird
+from genetic_bird import GeneticBird
 
 
 class FlockControl:
@@ -14,7 +15,10 @@ class FlockControl:
         ws = WorldState(unity_state)
 
         # Select the bird control type we will be using
-        bird_control = LineBird(ws)
+        #bird_control = LineBird(ws)
+        
+        bird_control = GeneticBird(ws)
+        
         start = timer()
         ws.make_grid(bird_control.get_grid_step())
         # print("Grid in :",timer()-start, "seconds")  
