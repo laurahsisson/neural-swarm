@@ -4,7 +4,6 @@ from world_state import WorldState
 from line_bird import LineBird
 from force_bird import ForceBird
 from multiprocessing import Pool
-import atexit
 
 generation = 1
 
@@ -13,9 +12,7 @@ class FlockControl:
         # Eventually, when we make each bird a class we can initialize an array here
         self.num_birds = num_birds
         self.decision_time = 0
-        self.pool = Pool()      
-        atexit.register(self.exit_handler)
-
+        self.pool = Pool()         
 
 
     def make_decisions(self, unity_state):
@@ -35,6 +32,7 @@ class FlockControl:
             print("Grid in :",timer()-start, "seconds")  
 
         start = timer()
+
         bird_control.prepare_step()
         if bird_control.parallelizable():
             bird_numbers = range(len(ws.birds))
@@ -48,8 +46,7 @@ class FlockControl:
                 decisions[b] = bird_control.make_decision(b)
         bird_control.end_step()
         self.decision_time += timer() - start
-        # print("Decisions in :",timer()-start, "seconds")
-        print(timer()-start)  
+        # print("Decisions in :",timer()-start, "seconds")  
 
 
         return (unity_state["generation"],decisions)
@@ -58,17 +55,8 @@ class FlockControl:
         print(self.decision_time)
         self.decision_time = 0
 
-    def exit_handler(self):
-        print("Closing pool")
-        self.pool.close()
-        self.pool.join()
-
-
-
 def parallel_helper(ws,bird_control,bird_number):
     if ws.birds[bird_number]["active"]:
         return bird_control.make_decision(bird_number)
     else:
         return [0,0]
-
-    
