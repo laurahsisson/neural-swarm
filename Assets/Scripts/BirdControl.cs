@@ -3,20 +3,54 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class BirdControl : MonoBehaviour {
+	private FlockControl flockControl;
+	private StatsControl statsControl;
+
 	private Vector3 lastPos;
+	private Vector2 force;
 
 
 	private Vector2 velocity;
-	private Vector2 force;
+	public Vector2 Velocity {
+		get {
+			return velocity;
+		}
+	}
 
-	private FlockControl flockControl;
-	private StatsControl statsControl;
 	private float size;
+	public float Size {
+		get {
+			return size;
+		}
+	}
 	// The maximum speed a bird can have. Also, the maximum amount of a force a bird can apply in a second.
 	private float speed;
+	public float Speed {
+		get {
+			return speed;
+		}
+	}
+
 	private float mass;
+	public float Mass {
+		get {
+			return mass;
+		}
+	}
+
 	private int number = -1;
+	public int Number {
+		get {
+			return number;
+		}
+	}
+
 	private bool moving = false;
+	public bool Moving {
+		get {
+			return moving;
+		}
+	}
 
 	[System.Serializable]
 	public struct Bird {
@@ -122,7 +156,7 @@ public class BirdControl : MonoBehaviour {
 		if (worldBound.Contains(transform.position)) {
 			return;
 		}
-			
+
 		if (transform.position.x < worldBound.xMin) {
 			velocity = new Vector2(-velocity.x,velocity.y);
 			transform.position = new Vector3(.01f,transform.position.y);
@@ -144,7 +178,7 @@ public class BirdControl : MonoBehaviour {
 
 		force = Vector2.zero;
 	}
-		
+
 	private void handleBirdCollision(BirdControl other) {
 		velocity = getResultantVelocity(transform.position,other.transform.position,mass,other.mass,velocity,other.velocity);
 		updateRotation();

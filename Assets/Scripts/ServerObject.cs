@@ -79,6 +79,9 @@ public class ServerObject : MonoBehaviour {
 	}
 
 	private void OnDestroy() {
+		if (!flockControl.callingPython) {
+			return;
+		}
 		_netMqPublisher.Stop();
 	}
 }

@@ -8,6 +8,9 @@ public class FlockControl : MonoBehaviour {
 	public GameObject wallPrefab;
 	public GameObject background;
 
+	public bool callingPython;
+	public DecisionControl decisionControl;
+
 	public GameObject[] staticWalls;
 
 	private StatsControl statsControl;
@@ -40,16 +43,26 @@ public class FlockControl : MonoBehaviour {
 	private int reachedGoal;
 	private readonly float MAX_TIME = 25f;
 
+
+	public struct UnityState {
+		public BirdControl[] birds;
+		public GameObject[] walls;
+		public GameObject goal;
+		public float roomWidth;
+		public float roomHeight;
+	}
+
 	[System.Serializable]
-	struct WorldState {
+	private struct WorldState {
 		public int generation;
-		public BirdControl 	.Bird[] birds;
+		public BirdControl.Bird[] birds;
 		public RectCorners[] walls;
 		public Vector2 goalPosition;
 		public float goalDiameter;
 		public float roomWidth;
 		public float roomHeight;
 	}
+
 
 	public void Start() {
 		// Set the background based on room settings
@@ -139,6 +152,16 @@ public class FlockControl : MonoBehaviour {
 		generation++;
 	}
 
+	private UnityState buildUnityState() {
+		UnityState us = new UnityState();
+		us.birds = birdControls;
+		us.walls = walls;
+		us.goal = goal;
+		us.roomHeight = ROOM_HEIGHT;
+		us.roomWidth = ROOM_WIDTH;
+		return us;
+	}
+
 	public string Serialize() {
 		BirdControl.Bird[] birds = new BirdControl.Bird[NUM_BIRDS];
 		for (int i = 0; i < NUM_BIRDS; i++) {
@@ -220,17 +243,31 @@ public class FlockControl : MonoBehaviour {
 	}
 
 	private void Update() {
-		if (!hasReceivedStart) {
+		if (!hasReceivedStart&&callingPython) {
 			startTime = Time.time;
 			return;
 		}
+		if (!callingPython){
+			float startCalculations = Time.time;
+			UnityState us = buildUnityState();
+			Vector2[] forces = decisionControl.MakeDecisions(us);
+			Debug.Assert(forces.Length == birdControls.Length);
+			for (int i = 0; i < forces.Length; i++) {
+				birdControls[i].SetForce(forces[i]);
+			}
+			float totalTime = Time.time-startCalculations;
+			Debug.Log("Calculated decisions in " + totalTime + " seconds.");
+		}
+
+
 		float remainTime = MAX_TIME - (Time.time - startTime);
 		uiControl.SetTime(remainTime);
 
 		if (remainTime < 0) {
 			statsControl.PrintStats();
 			resetSimulation();
-
 		}
+
+
 	}
 }
