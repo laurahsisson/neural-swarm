@@ -120,4 +120,34 @@ public class ForceDecisionControl : DecisionControl {
 		}
 		return delta.normalized;
 	}
+
+	private class ForceDNA {
+		private readonly static string[] ALL_FACTORS = new string[] {
+			"cohes_mass_exp", "cohes_dist_exp", "cohes_const", "cohes_cutoff",
+			"repuls_mass_exp", "repuls_dist_exp", "repuls_force_exp", "repuls_const", "repuls_cutoff",
+			"reward_mass_exp", "reward_dist_exp", "reward_const", "reward_cutoff",
+			"obstcl_mass_exp", "obstcl_dist_exp", "obstcl_const", "obstcl_cutoff", 
+			"align_mass_exp", "align_dist_exp", "align_speed_exp", "align_const", "align_cutoff"
+		};
+
+		private Dictionary<string, float> factorListToDict(float[] fl) {
+			Dictionary<string, float> fd = new Dictionary<string, float>();
+			Debug.LogAssertion(fl.Length == ALL_FACTORS.Length);
+			for (int i = 0; i < fl.Length; i++) {
+				string key = ALL_FACTORS[i];
+				fd.Add(key,fl[i]);
+			}
+			return fd;
+		}
+
+		private float[] factorDictToList(Dictionary<string, float> fd) {
+			float[] fl = new float[ALL_FACTORS.Length];
+			foreach (KeyValuePair<string, float> kv in fd) {
+				int index = System.Array.IndexOf(ALL_FACTORS,kv.Key);
+				fl[index] = kv.Value;
+			}
+			return fl;
+		}
+	}
 }
+
