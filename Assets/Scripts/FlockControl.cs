@@ -20,7 +20,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 40;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 1;
+	private readonly int NUM_BIRDS = 75;
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -252,15 +252,15 @@ public class FlockControl : MonoBehaviour {
 			return;
 		}
 		if (!callingPython){
-			float startCalculations = Time.time;
+			float startCalculations = Time.realtimeSinceStartup;
 			UnityState us = buildUnityState();
 			Vector2[] forces = decisionControl.MakeDecisions(us);
 			Debug.Assert(forces.Length == birdControls.Length);
 			for (int i = 0; i < forces.Length; i++) {
 				birdControls[i].SetForce(forces[i]);
 			}
-			float totalTime = Time.time-startCalculations;
-			Debug.Log("Calculated decisions in " + totalTime + " seconds.");
+			float totalTime = Time.realtimeSinceStartup-startCalculations;
+			Debug.Log("Calculated decisions in " + totalTime.ToString("G") + " seconds.");
 		}
 
 
@@ -271,7 +271,5 @@ public class FlockControl : MonoBehaviour {
 			statsControl.PrintStats();
 			resetSimulation();
 		}
-
-
 	}
 }

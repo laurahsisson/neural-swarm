@@ -45,21 +45,25 @@ public class ForceDecisionControl : DecisionControl {
 	}
 
 	private Vector2 getForce(FlockControl.UnityState us, int birdNumber) {
-		Vector2 force = Vector2.zero;
 		BirdControl me = us.birds [birdNumber];
-		force += aligment(us.birds, me);
-		force += cohesion(us.birds, me);
-		force += repulsion(us.birds, me);
-		force += obstacle(us.walls, me);
-		force += reward(us.goal, me);
-		force = force.normalized * me.Speed;
-		print(force);
-		return force;
+		Vector2 align = aligment(us.birds, me);
+		Vector2 cohes = cohesion(us.birds, me);
+		Vector2 repul = repulsion(us.birds, me);
+		Vector2 obstcl = obstacle(us.walls, me);
+		Vector2 rewrd = reward(us.goal, me);
+		Vector2 force = align + cohes + repul + obstcl + rewrd;
+		if (birdNumber == 0) {
+			print(align  + "," + cohes  + "," + repul  + "," + obstcl  + "," + rewrd);
+		}
+		return force.normalized * me.Speed;
 	}
 
 	private Vector2 cohesion(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
+			if (b.Equals(me)) {
+				continue;
+			}
 			Vector2 delta = (Vector2)(b.transform.position - me.transform.position);
 			float dist = delta.magnitude;
 			if (dist > factors [ForceDNA.Factor.CohesCutoff]) {
@@ -78,6 +82,9 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 repulsion(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
+			if (b.Equals(me)) {
+				continue;
+			}
 			Vector2 delta = (Vector2)(b.transform.position - me.transform.position);
 			float dist = delta.magnitude;
 			if (dist > factors [ForceDNA.Factor.RepulsCutoff]) {
@@ -96,12 +103,18 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
+			if (b.Equals(me)) {
+				continue;
+			}
 			Vector2 delta = (Vector2)(b.transform.position - me.transform.position);
 			float dist = delta.magnitude;
 			if (dist > factors [ForceDNA.Factor.AlignCutoff]) {
 				continue;
 			}
 			float speed = b.Velocity.magnitude;
+			if (speed == 0) {
+				continue;
+			}
 			Vector2 norm = b.Velocity / speed;
 			float massFactor = Mathf.Pow(b.Mass, factors [ForceDNA.Factor.AlignMassExp]);
 			float distFactor = Mathf.Pow(dist, factors [ForceDNA.Factor.AlignDistExp]);
