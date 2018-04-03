@@ -3,37 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class ForceDecisionControl : DecisionControl {
-
-	private static float COHESION_MASS_EXPONENT = 1;
-	private static float COHESION_DISTANCE_EXPONENT = 2;
-	private static float COHESION_CONSTANT = 1;
-	private static float COHESION_CUTOFF = 10;
-
-	private static float REPULSION_MASS_EXPONENT = 1;
-	private static float REPULSION_DISTANCE_EXPONENT = 1;
-	private static float REPULSION_CONSTANT = 1;
-	private static float REPULSION_CUTOFF = 2;
-
-	private static float OBSTACLE_MASS_EXPONENT = 1;
-	private static float OBSTACLE_DISTANCE_EXPONENT = 2;
-	private static float OBSTACLE_CONSTANT = 3;
-	private static float OBSTACLE_CUTOFF = 3;
-
-	private static float REWARD_MASS_EXPONENT = -.025f;
-	private static float REWARD_DISTANCE_EXPONENT = 1;
-	private static float REWARD_CONSTANT = 30;
-	private static float REWARD_CUTOFF = 40;
-
-	private static float ALIGNMENT_MASS_EXPONENT = 1;
-	private static float ALIGNMENT_SPEED_EXPONENT = 1;
-	private static float ALIGNMENT_DISTANCE_EXPONENT = 1;
-	private static float ALIGNMENT_CONSTANT = 3;
-	private static float ALIGNMENT_CUTOFF = 5;
-
-	private Dictionary<ForceDNA.Factor, float> factors;
+	private readonly int NUM_DNA = 10;
+	private int currentDNA;
+	private Dictionary<ForceDNA.Factor, float> currentFactors;
+	private Dictionary<ForceDNA.Factor, float>[] allFactors;
 
 	public override void InitializeModel() {
-		factors = ForceDNA.GenerateFactorDict();
+		currentDNA = 0;
+		allFactors = new Dictionary<ForceDNA.Factor, float>[NUM_DNA];
+		for (int i = 0; i < allFactors.Length; i++) {
+			allFactors [i] = ForceDNA.GenerateFactorDict();
+		}
+	}
+
+	public override void StartGeneration() {
+		currentFactors = allFactors [currentDNA];
 	}
 
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
@@ -44,6 +28,10 @@ public class ForceDecisionControl : DecisionControl {
 		return forces;
 	}
 
+	public override void EndGeneration() {
+		currentDNA = (currentDNA + 1) % NUM_DNA;
+	}
+
 	private Vector2 getForce(FlockControl.UnityState us, int birdNumber) {
 		BirdControl me = us.birds [birdNumber];
 		Vector2 align = aligment(us.birds, me);
@@ -52,9 +40,6 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 obstcl = obstacle(us.walls, me);
 		Vector2 rewrd = reward(us.goal, me);
 		Vector2 force = align + cohes + repul + obstcl + rewrd;
-		if (birdNumber == 0) {
-			print(align  + "," + cohes  + "," + repul  + "," + obstcl  + "," + rewrd);
-		}
 		return force.normalized * me.Speed;
 	}
 
@@ -66,16 +51,16 @@ public class ForceDecisionControl : DecisionControl {
 			}
 			Vector2 delta = (Vector2)(b.transform.position - me.transform.position);
 			float dist = delta.magnitude;
-			if (dist > factors [ForceDNA.Factor.CohesCutoff]) {
+			if (dist > currentFactors [ForceDNA.Factor.CohesCutoff]) {
 				continue;
 			}
 			Vector2 norm = delta / dist;
-			float massFactor = Mathf.Pow(b.Mass, factors [ForceDNA.Factor.CohesMassExp]);
-			float distFactor = Mathf.Pow(dist, factors [ForceDNA.Factor.CohesDistExp]);
+			float massFactor = Mathf.Pow(b.Mass, currentFactors [ForceDNA.Factor.CohesMassExp]);
+			float distFactor = Mathf.Pow(dist, currentFactors [ForceDNA.Factor.CohesDistExp]);
 			force += norm * massFactor * distFactor;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, factors [ForceDNA.Factor.CohesMassExp]);
-		force *= factors [ForceDNA.Factor.CohesConst] * myMassFactor;
+		float myMassFactor = Mathf.Pow(me.Mass, currentFactors [ForceDNA.Factor.CohesMassExp]);
+		force *= currentFactors [ForceDNA.Factor.CohesConst] * myMassFactor;
 		return force;
 	}
 
@@ -87,16 +72,16 @@ public class ForceDecisionControl : DecisionControl {
 			}
 			Vector2 delta = (Vector2)(b.transform.position - me.transform.position);
 			float dist = delta.magnitude;
-			if (dist > factors [ForceDNA.Factor.RepulsCutoff]) {
+			if (dist > currentFactors [ForceDNA.Factor.RepulsCutoff]) {
 				continue;
 			}
 			Vector2 norm = delta / dist;
-			float massFactor = Mathf.Pow(b.Mass, factors [ForceDNA.Factor.RepulsMassExp]);
-			float distFactor = Mathf.Pow(dist, factors [ForceDNA.Factor.RepulsDistExp]);
+			float massFactor = Mathf.Pow(b.Mass, currentFactors [ForceDNA.Factor.RepulsMassExp]);
+			float distFactor = Mathf.Pow(dist, currentFactors [ForceDNA.Factor.RepulsDistExp]);
 			force += norm * massFactor * distFactor;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, factors [ForceDNA.Factor.RepulsMassExp]);
-		force *= factors [ForceDNA.Factor.RepulsConst] * myMassFactor;
+		float myMassFactor = Mathf.Pow(me.Mass, currentFactors [ForceDNA.Factor.RepulsMassExp]);
+		force *= currentFactors [ForceDNA.Factor.RepulsConst] * myMassFactor;
 		return force;
 	}
 
@@ -108,7 +93,7 @@ public class ForceDecisionControl : DecisionControl {
 			}
 			Vector2 delta = (Vector2)(b.transform.position - me.transform.position);
 			float dist = delta.magnitude;
-			if (dist > factors [ForceDNA.Factor.AlignCutoff]) {
+			if (dist > currentFactors [ForceDNA.Factor.AlignCutoff]) {
 				continue;
 			}
 			float speed = b.Velocity.magnitude;
@@ -116,13 +101,13 @@ public class ForceDecisionControl : DecisionControl {
 				continue;
 			}
 			Vector2 norm = b.Velocity / speed;
-			float massFactor = Mathf.Pow(b.Mass, factors [ForceDNA.Factor.AlignMassExp]);
-			float distFactor = Mathf.Pow(dist, factors [ForceDNA.Factor.AlignDistExp]);
-			float speedFactor = Mathf.Pow(speed, factors [ForceDNA.Factor.AlignSpeedExp]);
+			float massFactor = Mathf.Pow(b.Mass, currentFactors [ForceDNA.Factor.AlignMassExp]);
+			float distFactor = Mathf.Pow(dist, currentFactors [ForceDNA.Factor.AlignDistExp]);
+			float speedFactor = Mathf.Pow(speed, currentFactors [ForceDNA.Factor.AlignSpeedExp]);
 			force += norm * massFactor * distFactor * speedFactor;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, factors [ForceDNA.Factor.AlignMassExp]);
-		force *= factors [ForceDNA.Factor.AlignConst] * myMassFactor;
+		float myMassFactor = Mathf.Pow(me.Mass, currentFactors [ForceDNA.Factor.AlignMassExp]);
+		force *= currentFactors [ForceDNA.Factor.AlignConst] * myMassFactor;
 		return force;
 	}
 
@@ -132,28 +117,28 @@ public class ForceDecisionControl : DecisionControl {
 			ColliderDistance2D cd = me.gameObject.GetComponent<Collider2D>().Distance(w.GetComponent<Collider2D>());
 			Vector2 delta = (cd.pointB - (Vector2)me.transform.position);
 			float dist = delta.magnitude;
-			if (dist > factors [ForceDNA.Factor.ObstclCutoff]) {
+			if (dist > currentFactors [ForceDNA.Factor.ObstclCutoff]) {
 				continue;
 			}
 			Vector2 norm = delta / dist;
-			float distFactor = Mathf.Pow(dist, factors [ForceDNA.Factor.ObstclDistExp]);
+			float distFactor = Mathf.Pow(dist, currentFactors [ForceDNA.Factor.ObstclDistExp]);
 			force += norm * distFactor;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, factors [ForceDNA.Factor.ObstclMassExp]);
-		force *= factors [ForceDNA.Factor.ObstclConst] * myMassFactor;
+		float myMassFactor = Mathf.Pow(me.Mass, currentFactors [ForceDNA.Factor.ObstclMassExp]);
+		force *= currentFactors [ForceDNA.Factor.ObstclConst] * myMassFactor;
 		return force;
 	}
 
 	private Vector2 reward(GameObject goal, BirdControl me) {
 		Vector2 delta = (Vector2)(goal.transform.position - me.transform.position);
 		float dist = delta.magnitude;
-		if (dist > factors [ForceDNA.Factor.RewardCutoff]) {
+		if (dist > currentFactors [ForceDNA.Factor.RewardCutoff]) {
 			return Vector2.zero;
 		}
 		Vector2 norm = delta / dist;
-		float distFactor = Mathf.Pow(dist, factors [ForceDNA.Factor.RewardDistExp]);
-		float myMassFactor = Mathf.Pow(me.Mass, factors [ForceDNA.Factor.RewardMassExp]);
-		return norm * distFactor * myMassFactor * factors [ForceDNA.Factor.RewardConst];
+		float distFactor = Mathf.Pow(dist, currentFactors [ForceDNA.Factor.RewardDistExp]);
+		float myMassFactor = Mathf.Pow(me.Mass, currentFactors [ForceDNA.Factor.RewardMassExp]);
+		return norm * distFactor * myMassFactor * currentFactors [ForceDNA.Factor.RewardConst];
 	}
 
 	private class ForceDNA {

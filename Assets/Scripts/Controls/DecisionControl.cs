@@ -4,7 +4,11 @@ using UnityEngine;
 
 public class DecisionControl : MonoBehaviour {
 
-	public virtual void InitializeModel() {}
+	public virtual void InitializeModel() {
+	}
+
+	public virtual void StartGeneration() {
+	}
 
 	public virtual Vector2[] MakeDecisions(FlockControl.UnityState us) {
 		Vector2[] decisions = new Vector2[us.birds.Length];
@@ -13,4 +17,8 @@ public class DecisionControl : MonoBehaviour {
 		}
 		return decisions;
 	}
+
+	public virtual void EndGeneration() {
+	}
+
 }

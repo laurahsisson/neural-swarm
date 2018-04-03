@@ -85,34 +85,37 @@ public class FlockControl : MonoBehaviour {
 			birdControls [i] = bird;
 		}
 
-		walls = new GameObject[NUM_RANDOM_WALLS+4];
+		walls = new GameObject[NUM_RANDOM_WALLS + 4];
 		for (int i = 0; i < walls.Length; i++) {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
 		}
-		walls[NUM_RANDOM_WALLS].transform.position = new Vector3(0,ROOM_HEIGHT/2);
-		walls[NUM_RANDOM_WALLS].transform.localScale = new Vector3(1,ROOM_HEIGHT,1);
+		walls [NUM_RANDOM_WALLS].transform.position = new Vector3(-1, ROOM_HEIGHT / 2);
+		walls [NUM_RANDOM_WALLS].transform.localScale = new Vector3(1, ROOM_HEIGHT, 1);
 
-		walls[NUM_RANDOM_WALLS+1].transform.position = new Vector3(ROOM_WIDTH,ROOM_HEIGHT/2);
-		walls[NUM_RANDOM_WALLS+1].transform.localScale = new Vector3(1,ROOM_HEIGHT,1);
+		walls [NUM_RANDOM_WALLS + 1].transform.position = new Vector3(ROOM_WIDTH+1, ROOM_HEIGHT / 2);
+		walls [NUM_RANDOM_WALLS + 1].transform.localScale = new Vector3(1, ROOM_HEIGHT, 1);
 
-		walls[NUM_RANDOM_WALLS+2].transform.position = new Vector3(ROOM_WIDTH/2,0);
-		walls[NUM_RANDOM_WALLS+2].transform.localScale = new Vector3(ROOM_WIDTH,1,1);
+		walls [NUM_RANDOM_WALLS + 2].transform.position = new Vector3(ROOM_WIDTH / 2, -1);
+		walls [NUM_RANDOM_WALLS + 2].transform.localScale = new Vector3(ROOM_WIDTH, 1, 1);
 
-		walls[NUM_RANDOM_WALLS+3].transform.position = new Vector3(ROOM_WIDTH/2,ROOM_HEIGHT);
-		walls[NUM_RANDOM_WALLS+3].transform.localScale = new Vector3(ROOM_WIDTH,1,1);
+		walls [NUM_RANDOM_WALLS + 3].transform.position = new Vector3(ROOM_WIDTH / 2, ROOM_HEIGHT+1);
+		walls [NUM_RANDOM_WALLS + 3].transform.localScale = new Vector3(ROOM_WIDTH, 1, 1);
 
 		resetSimulation();
 	}
-		
+
 	public void IncrementGoal() {
 		reachedGoal++;
 		if (reachedGoal == NUM_BIRDS) {
 			statsControl.PrintStats();
 			resetSimulation();
+			if (!callingPython) {
+				decisionControl.EndGeneration();
+			}
 		}
 	}
 
-	// Resets the walls, goal and all birds. 
+	// Resets the walls, goal and all birds.
 	private void resetSimulation() {
 		goal.transform.position = randomPosition();
 
@@ -140,8 +143,8 @@ public class FlockControl : MonoBehaviour {
 		while (hasOverlap) {
 			hasOverlap = false;
 			for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
-				ColliderDistance2D distance = goalCollider.Distance(walls[i].GetComponent<Collider2D>());
-				if (distance.distance<0) {
+				ColliderDistance2D distance = goalCollider.Distance(walls [i].GetComponent<Collider2D>());
+				if (distance.distance < 0) {
 					hasOverlap = true;
 					goal.transform.position = randomPosition();
 					break;
@@ -151,6 +154,9 @@ public class FlockControl : MonoBehaviour {
 
 		statsControl.Setup(NUM_BIRDS, MAX_TIME);
 		uiControl.AwaitingText();
+		if (!callingPython) {
+			decisionControl.StartGeneration();
+		}
 		startTime = Time.time;
 		hasReceivedStart = false;
 		generation++;
@@ -171,12 +177,12 @@ public class FlockControl : MonoBehaviour {
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			birds [i] = birdControls [i].ToStruct();
 		}
-		RectCorners[] wallStates = new RectCorners[walls.Length+staticWalls.Length];
+		RectCorners[] wallStates = new RectCorners[walls.Length + staticWalls.Length];
 		for (int i = 0; i < walls.Length; i++) {
-			wallStates[i] = new RectCorners(walls[i].GetComponent<RectTransform>());
+			wallStates [i] = new RectCorners(walls [i].GetComponent<RectTransform>());
 		}
 		for (int j = 0; j < staticWalls.Length; j++) {
-			wallStates[j+walls.Length] =  new RectCorners(staticWalls[j].GetComponent<RectTransform>());
+			wallStates [j + walls.Length] = new RectCorners(staticWalls [j].GetComponent<RectTransform>());
 		}
 
 		WorldState ws = new WorldState();
@@ -195,15 +201,15 @@ public class FlockControl : MonoBehaviour {
 	public void Deserialize(string rawCommand) {
 		// Expected format is the generation follow by a Python list of lists of two numbers ie: [100,[[1,2],[3,4]]]
 		rawCommand = rawCommand.Substring(1, rawCommand.Length - 2);
-		string[] generationListsOfListsSplit = rawCommand.Split(new char[]{','});
-		int rg =  int.Parse(generationListsOfListsSplit[0]);
+		string[] generationListsOfListsSplit = rawCommand.Split(new char[]{ ',' });
+		int rg = int.Parse(generationListsOfListsSplit [0]);
 		if (rg != generation) {
 			// Do not accept commands from other generations
 			return;
 		}
 		try {
-			rawCommand = rawCommand.Substring(generationListsOfListsSplit[0].Length+2,rawCommand.Length-3);		
-		} catch (System.Exception ex){
+			rawCommand = rawCommand.Substring(generationListsOfListsSplit [0].Length + 2, rawCommand.Length - 3);		
+		} catch (System.Exception ex) {
 			Debug.Log(rawCommand);
 			throw ex;
 		}
@@ -236,30 +242,30 @@ public class FlockControl : MonoBehaviour {
 		return new Vector3(Random.Range(0, ROOM_WIDTH), Random.Range(0, ROOM_HEIGHT), 0);
 	}
 
-	private Vector3 random2Position(int i){
+	private Vector3 random2Position(int i) {
 		if (i < 10) {
-			return new Vector3 (12, 25 - i + 2, 0);
+			return new Vector3(12, 25 - i + 2, 0);
 		} else if (i < 20) {
-			return new Vector3 (30, 25 - i + 2, 0);
+			return new Vector3(30, 25 - i + 2, 0);
 		} else {
-			return new Vector3 (12 + i + 2, 35, 0);
+			return new Vector3(12 + i + 2, 35, 0);
 		}
 	}
 
 	private void Update() {
-		if (!hasReceivedStart&&callingPython) {
+		if (!hasReceivedStart && callingPython) {
 			startTime = Time.time;
 			return;
 		}
-		if (!callingPython){
+		if (!callingPython) {
 			float startCalculations = Time.realtimeSinceStartup;
 			UnityState us = buildUnityState();
 			Vector2[] forces = decisionControl.MakeDecisions(us);
 			Debug.Assert(forces.Length == birdControls.Length);
 			for (int i = 0; i < forces.Length; i++) {
-				birdControls[i].SetForce(forces[i]);
+				birdControls [i].SetForce(forces [i]);
 			}
-			float totalTime = Time.realtimeSinceStartup-startCalculations;
+			float totalTime = Time.realtimeSinceStartup - startCalculations;
 			Debug.Log("Calculated decisions in " + totalTime.ToString("G") + " seconds.");
 		}
 
