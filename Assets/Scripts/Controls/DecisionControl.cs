@@ -18,7 +18,7 @@ public class DecisionControl : MonoBehaviour {
 		return decisions;
 	}
 
-	public virtual void EndGeneration() {
+	public virtual void EndGeneration(StatsControl.GenerationStats gs) {
 	}
 
 }

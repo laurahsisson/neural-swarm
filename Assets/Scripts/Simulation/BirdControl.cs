@@ -9,6 +9,7 @@ public class BirdControl : MonoBehaviour {
 	private Vector3 lastPos;
 	private Vector2 force;
 
+	private Vector3 defaultScale = new Vector3(1f,2.5f,1f);
 
 	private Vector2 velocity;
 	public Vector2 Velocity {
@@ -67,8 +68,9 @@ public class BirdControl : MonoBehaviour {
 		this.flockControl = FindObjectOfType<FlockControl>();
 		this.statsControl = FindObjectOfType<StatsControl>();
 		this.velocity = Vector2.zero;
+		this.force = Vector2.zero;
 		this.size = size;
-		this.transform.localScale*=size;
+		this.transform.localScale=defaultScale*size;
 		this.speed = speed;
 		this.mass = size*size;
 		this.number = number;

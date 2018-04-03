@@ -20,7 +20,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 40;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 75;
+	private readonly int NUM_BIRDS = 100;
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -41,7 +41,7 @@ public class FlockControl : MonoBehaviour {
 	private bool hasReceivedStart = false;
 	private int generation = 0;
 	private int reachedGoal;
-	private readonly float MAX_TIME = 25f;
+	private readonly float MAX_TIME = 15f;
 
 
 	public struct UnityState {
@@ -68,6 +68,7 @@ public class FlockControl : MonoBehaviour {
 		if (!callingPython) {
 			decisionControl.InitializeModel();
 		}
+		Application.targetFrameRate = 60;
 
 		// Set the background based on room settings
 		background.transform.position = new Vector3(ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 5);
@@ -107,12 +108,15 @@ public class FlockControl : MonoBehaviour {
 	public void IncrementGoal() {
 		reachedGoal++;
 		if (reachedGoal == NUM_BIRDS) {
-			statsControl.PrintStats();
-			resetSimulation();
-			if (!callingPython) {
-				decisionControl.EndGeneration();
-			}
 		}
+	}
+
+	private void endSimulation() {
+		StatsControl.GenerationStats gs = statsControl.CalculateStates(true);
+		if (!callingPython) {
+			decisionControl.EndGeneration(gs);
+		}
+		resetSimulation();
 	}
 
 	// Resets the walls, goal and all birds.
@@ -274,8 +278,7 @@ public class FlockControl : MonoBehaviour {
 		uiControl.SetTime(remainTime);
 
 		if (remainTime < 0) {
-			statsControl.PrintStats();
-			resetSimulation();
+			endSimulation();
 		}
 	}
 }

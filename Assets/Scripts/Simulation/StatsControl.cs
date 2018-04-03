@@ -7,20 +7,30 @@ public class StatsControl : MonoBehaviour {
 	private int birdCollisions;
 	private float[] completionTimes;
 	private float startTime;
+	private int completed;
+
+	public struct GenerationStats {
+		public int completed;
+		public int wallCollisions;
+		public int birdCollisions;
+		public float averageTime;
+	}
 
 	public void Setup(int numBirds, float maxTime) {
 		wallCollisions = 0;
 		birdCollisions = 0;
+		completed = 0;
 		completionTimes = new float[numBirds];
 		startTime = Time.time;
 		// Because we won't call complete on birds that do not complete the goal, assume they took maxTime
 		for (int i = 0; i < completionTimes.Length; i++) {
-			completionTimes[i] = maxTime;
+			completionTimes [i] = maxTime;
 		}
 	}
 
 	public void Complete(int number) {
 		completionTimes [number] = Time.time - startTime;
+		completed++;
 	}
 
 	public void AddWallCollision() {
@@ -31,14 +41,12 @@ public class StatsControl : MonoBehaviour {
 		birdCollisions++;
 	}
 
-	public void PrintStats() {
-		Debug.Log("Bird/Wall Collisions: " + wallCollisions);
-		Debug.Log("Bird/Wall Collisions: " + birdCollisions);
+	public GenerationStats CalculateStates(bool shouldPrint) {
 		float maxTime = 0;
 		float minTime = Mathf.Infinity;
 		float totalTime = 0;
 		for (int i = 0; i < completionTimes.Length; i++) {
-			float time = completionTimes[i];
+			float time = completionTimes [i];
 			if (time > maxTime) {
 				maxTime = time;
 			}
@@ -47,16 +55,29 @@ public class StatsControl : MonoBehaviour {
 			}
 			totalTime += time;
 		}
-		float averageTime = totalTime/completionTimes.Length;
+		float averageTime = totalTime / completionTimes.Length;
 		float stdDevSum = 0;
 		for (int i = 0; i < completionTimes.Length; i++) {
-			stdDevSum = Mathf.Pow(completionTimes[i],2f);
+			stdDevSum = Mathf.Pow(completionTimes [i], 2f);
 		}
-		float standardDeviation = Mathf.Pow(stdDevSum/(completionTimes.Length-1),.5f);
-		Debug.Log("Minimum Completion Time: " + minTime);
-		Debug.Log("Maximum Completion Time: " + maxTime);
-		Debug.Log("Average Completion Time: " + averageTime);
-		Debug.Log("Standard Deviation of Completion Time: " + standardDeviation);
+		float standardDeviation = Mathf.Pow(stdDevSum / (completionTimes.Length - 1), .5f);
 
+		if (shouldPrint) {
+			Debug.Log("Birds Completed: + " + completed);
+			Debug.Log("Bird/Wall Collisions: " + wallCollisions);
+			Debug.Log("Bird/Wall Collisions: " + birdCollisions);
+			Debug.Log("Minimum Completion Time: " + minTime);
+			Debug.Log("Maximum Completion Time: " + maxTime);
+			Debug.Log("Average Completion Time: " + averageTime);
+			Debug.Log("Standard Deviation of Completion Time: " + standardDeviation);
+		}
+		GenerationStats gs = new GenerationStats();
+		gs.completed = completed;
+		gs.birdCollisions = birdCollisions;
+		gs.wallCollisions = wallCollisions;
+		gs.averageTime = averageTime;
+		return gs;
 	}
+
+
 }
