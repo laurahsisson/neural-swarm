@@ -20,7 +20,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 40;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 50;
+	private readonly int NUM_BIRDS = 1;
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -65,6 +65,10 @@ public class FlockControl : MonoBehaviour {
 
 
 	public void Start() {
+		if (!callingPython) {
+			decisionControl.InitializeModel();
+		}
+
 		// Set the background based on room settings
 		background.transform.position = new Vector3(ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 5);
 		background.transform.localScale = new Vector3(ROOM_WIDTH + 5, ROOM_HEIGHT + 5, 1);

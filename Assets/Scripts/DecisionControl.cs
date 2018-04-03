@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class DecisionControl : MonoBehaviour {
 
+	public virtual void InitializeModel() {}
+
 	public virtual Vector2[] MakeDecisions(FlockControl.UnityState us) {
 		Vector2[] decisions = new Vector2[us.birds.Length];
 		for (int i = 0; i < decisions.Length; i++) {

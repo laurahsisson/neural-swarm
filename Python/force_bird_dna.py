@@ -1,4 +1,4 @@
-__all_factors = [
+all_factors = [
     "cohes_mass_exp", "cohes_dist_exp", "cohes_const", "cohes_cutoff",
     "repuls_mass_exp", "repuls_dist_exp", "repuls_force_exp", "repuls_const", "repuls_cutoff",
     "reward_mass_exp", "reward_dist_exp", "reward_const", "reward_cutoff",
