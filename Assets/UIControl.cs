@@ -13,21 +13,22 @@ public class UIControl : MonoBehaviour {
 
 	}
 
-	public void SetTime(float time) {
-		framesPerSecond.Enqueue(1/Time.deltaTime);
-		if (framesPerSecond.Count>maxFramesRecorded) {
+	public void SetTime(int generation, float time) {
+		framesPerSecond.Enqueue(1 / Time.deltaTime);
+		if (framesPerSecond.Count > maxFramesRecorded) {
 			framesPerSecond.Dequeue();
 		}
 		float[] fps = framesPerSecond.ToArray();
 		float sum = 0;
 		foreach (float t in fps) {
-			sum+=t;
+			sum += t;
 		}
 
-		timeText.text = time.ToString("N2") + "\t\t\t\t" + (sum/(float)fps.Length) + "\t\t\t\t" + Application.targetFrameRate;
+		timeText.text = generation + "\t\t\t\t" + time.ToString("N2") + "\t\t\t\t" + ((int)sum / fps.Length);
 	}
 
 	private void Start() {
 		timeText = GetComponent<Text>();
 	}
+
 }

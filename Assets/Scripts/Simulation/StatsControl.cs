@@ -14,6 +14,14 @@ public class StatsControl : MonoBehaviour {
 		public int wallCollisions;
 		public int birdCollisions;
 		public float averageTime;
+		public int numBirds;
+	}
+
+	public struct PartialStats {
+		public int completed;
+		public int wallCollisions;
+		public int birdCollisions;
+		public int numBirds;
 	}
 
 	public void Setup(int numBirds, float maxTime) {
@@ -41,7 +49,7 @@ public class StatsControl : MonoBehaviour {
 		birdCollisions++;
 	}
 
-	public GenerationStats CalculateStates(bool shouldPrint) {
+	public GenerationStats CalculateStats(bool shouldPrint) {
 		float maxTime = 0;
 		float minTime = Mathf.Infinity;
 		float totalTime = 0;
@@ -63,7 +71,7 @@ public class StatsControl : MonoBehaviour {
 		float standardDeviation = Mathf.Pow(stdDevSum / (completionTimes.Length - 1), .5f);
 
 		if (shouldPrint) {
-			Debug.Log("Birds Completed: + " + completed);
+			Debug.Log("Birds Completed: " + completed);
 			Debug.Log("Bird/Wall Collisions: " + wallCollisions);
 			Debug.Log("Bird/Wall Collisions: " + birdCollisions);
 			Debug.Log("Minimum Completion Time: " + minTime);
@@ -76,8 +84,17 @@ public class StatsControl : MonoBehaviour {
 		gs.birdCollisions = birdCollisions;
 		gs.wallCollisions = wallCollisions;
 		gs.averageTime = averageTime;
+		gs.numBirds = completionTimes.Length;
 		return gs;
 	}
 
+	public PartialStats CalculatePartial() {
+		PartialStats ps = new PartialStats();
+		ps.completed = completed;
+		ps.birdCollisions = birdCollisions;
+		ps.wallCollisions = wallCollisions;
+		ps.numBirds = completionTimes.Length;
+		return ps;
+	}
 
 }

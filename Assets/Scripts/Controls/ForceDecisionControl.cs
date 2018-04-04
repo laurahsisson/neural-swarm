@@ -1,18 +1,25 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ForceDecisionControl : DecisionControl {
-	private readonly int NUM_DNA = 10;
+	private Text dnaText;
+
+	private readonly int NUM_DNA = 20;
 	private int currentDNA;
 	private Dictionary<ForceDNA.Factor, float> currentFactor;
 	private Dictionary<ForceDNA.Factor, float>[] allFactors;
-	private float[] scores;
+	private StatsControl.GenerationStats[] gScores;
 
+
+	// If less than this percentage reach goal, only the number reaching the goal is counted for the entirety of this section
+	private readonly float CompletedPercentage = .8f;
 	private readonly float CompletedMult = 1000;
 	private readonly float AverageTimeMult = -100;
 	private readonly float BirdCollisionMult = -2;
 	private readonly float WallCollisionMult = -5;
+
 
 
 	public override void InitializeModel() {
@@ -21,11 +28,15 @@ public class ForceDecisionControl : DecisionControl {
 		for (int i = 0; i < allFactors.Length; i++) {
 			allFactors [i] = ForceDNA.GenerateFactorDict();
 		}
-		scores = new float[NUM_DNA];
+		gScores = new StatsControl.GenerationStats[NUM_DNA];
 	}
 
 	public override void StartGeneration() {
 		currentFactor = allFactors [currentDNA];
+		dnaText.text = "\n\n\n";
+		foreach (KeyValuePair<ForceDNA.Factor, float> kv in currentFactor) {
+			dnaText.text += kv.Key.ToString() + ": " + kv.Value + "\n";
+		}
 	}
 
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
@@ -37,30 +48,54 @@ public class ForceDecisionControl : DecisionControl {
 	}
 
 	public override void EndGeneration(StatsControl.GenerationStats gs) {
-		// The higher the score the score the better
-		float sc = (gs.completed * CompletedMult) + (gs.averageTime * AverageTimeMult) + (gs.birdCollisions * BirdCollisionMult) + (gs.wallCollisions * WallCollisionMult);
-		scores [currentDNA] = sc;
+		gScores [currentDNA] = gs;
 		currentDNA++;
 		if (currentDNA == NUM_DNA) {
 			currentDNA = 0;
 			evolve();
-			scores = new float[NUM_DNA];
+			gScores = new StatsControl.GenerationStats[NUM_DNA];
 		}
+	}
+
+	private float calcScore(StatsControl.GenerationStats gs, bool onlyGoalReached) {
+		// The higher the score the score the better
+		float s = 0;
+		if (onlyGoalReached) {
+			s = gs.completed;
+		} else {
+			s = (gs.completed * CompletedMult) + (gs.averageTime * AverageTimeMult) + (gs.birdCollisions * BirdCollisionMult) + (gs.wallCollisions * WallCollisionMult);
+		}
+		return Mathf.Max(1,s); // Score will always be greater than 0
 	}
 
 	private void evolve() {
 		float sum = 0;
+		bool onlyGoalReached = false;
+		foreach (StatsControl.GenerationStats gs in gScores) {
+			if (gs.completed < gs.numBirds*CompletedPercentage) {
+				onlyGoalReached = true;
+			}
+		}
+
+		float[] scores = new float[gScores.Length];
 		for (int i = 0; i < scores.Length; i++) {
+			scores [i] = calcScore(gScores [i], onlyGoalReached);
+		}
+
+		foreach (var x in scores) {
+			print(x);
+		}
+
+		for (int i = 0; i < gScores.Length; i++) {
 			sum += scores [i];
 		}
 
-		float[] adjustedScores = new float[scores.Length];
+		float[] adjustedScores = new float[gScores.Length];
 
 		// Divide each score by the sum so the new total of the scores is 1.
 		for (int i = 0; i < adjustedScores.Length; i++) {
 			adjustedScores [i] = scores [i] / sum;
 		}
-		print(adjustedScores);
 
 		float[][] newFactors = new float[NUM_DNA][];
 		for (int currentChild = 0; currentChild < NUM_DNA; currentChild++) {
@@ -69,10 +104,12 @@ public class ForceDecisionControl : DecisionControl {
 
 			float[] parent1 = ForceDNA.FactorDictToList(allFactors [p1]);
 			float[] parent2 = ForceDNA.FactorDictToList(allFactors [p2]);
+			print(p1 + "," + p2);
 			float[] child = new float[parent1.Length];
-			// Using uniform crossover, so half of the genes come from parent1 and the other half comes from parent2, chosen uniformally at random
+			// Using single crossover, so the first portion comes from parent1 and the second portion from parent2
+			int crossover = Random.Range(0,child.Length);
 			for (int i = 0; i < child.Length; i++) {
-				if (Random.value <= .5f) {
+				if (i<=crossover) {
 					child [i] = parent1 [i];
 				} else {
 					child [i] = parent2 [i];
@@ -213,6 +250,11 @@ public class ForceDecisionControl : DecisionControl {
 		return norm * distFactor * myMassFactor * currentFactor [ForceDNA.Factor.RewardConst];
 	}
 
+	private void Start() {
+		dnaText = GetComponent<Text>();
+	}
+
+
 	private class ForceDNA {
 		public static readonly float MIN_FACTOR_VALUE = -2f;
 		public static readonly float MAX_FACTOR_VALUE = 2f;
@@ -220,10 +262,10 @@ public class ForceDecisionControl : DecisionControl {
 		public static readonly float MIN_CUTOFF_VALUE = 5f;
 		public static readonly float MAX_CUTOFF_VALUE = 25f;
 
-		public static readonly float MIN_FACTOR_MUTATION = -.25f;
-		public static readonly float MAX_FACTOR_MUTATION = .25f;
+		public static readonly float MIN_FACTOR_MUTATION = -.1f;
+		public static readonly float MAX_FACTOR_MUTATION = .1f;
 
-		public static readonly float MUTATION_CHANCE = .05f;
+		public static readonly float MUTATION_CHANCE = .04f;
 
 		public enum Factor {
 			CohesMassExp,

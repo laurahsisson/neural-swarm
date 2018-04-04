@@ -16,8 +16,8 @@ public class FlockControl : MonoBehaviour {
 	private StatsControl statsControl;
 	private UIControl uiControl;
 
-	private readonly float ROOM_WIDTH = 50;
-	private readonly float ROOM_HEIGHT = 40;
+	private readonly float ROOM_WIDTH = 75;
+	private readonly float ROOM_HEIGHT = 60;
 
 	private BirdControl[] birdControls;
 	private readonly int NUM_BIRDS = 100;
@@ -25,8 +25,8 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
 
-	private readonly float MIN_SPEED = 4f;
-	private readonly float MAX_SPEED = 6f;
+	private readonly float MIN_SPEED = 7f;
+	private readonly float MAX_SPEED = 9f;
 
 	private GameObject[] walls;
 	private readonly int NUM_RANDOM_WALLS = 5;
@@ -36,12 +36,16 @@ public class FlockControl : MonoBehaviour {
 	private readonly float WALL_MAX_AREA = 12f;
 	private readonly float WALL_MIN_AREA = 8f;
 
+	private readonly float SIMULATION_SPEED = 1f;
+	private readonly float FRAMES_PER_SECOND = 30f;
+
 	private GameObject goal;
 	private float startTime = 0;
 	private bool hasReceivedStart = false;
 	private int generation = 0;
 	private int reachedGoal;
 	private readonly float MAX_TIME = 15f;
+
 
 
 	public struct UnityState {
@@ -67,12 +71,17 @@ public class FlockControl : MonoBehaviour {
 	public void Start() {
 		if (!callingPython) {
 			decisionControl.InitializeModel();
+			Destroy(GameObject.FindGameObjectWithTag("ClientServer"));
 		}
-		Application.targetFrameRate = 60;
+		Application.targetFrameRate = (int) (FRAMES_PER_SECOND*SIMULATION_SPEED);
+		Time.timeScale = SIMULATION_SPEED;
+		Application.runInBackground = true;
 
 		// Set the background based on room settings
 		background.transform.position = new Vector3(ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 5);
+		Camera.main.transform.position = new Vector3(ROOM_WIDTH / 2, ROOM_HEIGHT / 2, -10);
 		background.transform.localScale = new Vector3(ROOM_WIDTH + 5, ROOM_HEIGHT + 5, 1);
+
 		background.GetComponent<Renderer>().material.color = Color.black;
 
 		goal = Instantiate<GameObject>(goalPrefab);
@@ -112,7 +121,7 @@ public class FlockControl : MonoBehaviour {
 	}
 
 	private void endSimulation() {
-		StatsControl.GenerationStats gs = statsControl.CalculateStates(true);
+		StatsControl.GenerationStats gs = statsControl.CalculateStats(false);
 		if (!callingPython) {
 			decisionControl.EndGeneration(gs);
 		}
@@ -262,20 +271,17 @@ public class FlockControl : MonoBehaviour {
 			return;
 		}
 		if (!callingPython) {
-			float startCalculations = Time.realtimeSinceStartup;
 			UnityState us = buildUnityState();
 			Vector2[] forces = decisionControl.MakeDecisions(us);
 			Debug.Assert(forces.Length == birdControls.Length);
 			for (int i = 0; i < forces.Length; i++) {
 				birdControls [i].SetForce(forces [i]);
 			}
-			float totalTime = Time.realtimeSinceStartup - startCalculations;
-			Debug.Log("Calculated decisions in " + totalTime.ToString("G") + " seconds.");
 		}
 
 
 		float remainTime = MAX_TIME - (Time.time - startTime);
-		uiControl.SetTime(remainTime);
+		uiControl.SetTime(generation, remainTime);
 
 		if (remainTime < 0) {
 			endSimulation();

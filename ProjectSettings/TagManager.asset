@@ -7,6 +7,7 @@ TagManager:
   - Goal
   - Bird
   - Wall
+  - ClientServer
   layers:
   - Default
   - TransparentFX
