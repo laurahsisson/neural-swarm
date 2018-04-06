@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class ForceDecisionControl : DecisionControl {
 	private Text dnaText;
 
-	private readonly int NUM_DNA = 20;
+	private readonly int NUM_DNA = 1;
 	private int currentDNA;
 	private Dictionary<ForceDNA.Factor, float> currentFactor;
 	private Dictionary<ForceDNA.Factor, float>[] allFactors;
@@ -52,7 +52,8 @@ public class ForceDecisionControl : DecisionControl {
 		currentDNA++;
 		if (currentDNA == NUM_DNA) {
 			currentDNA = 0;
-			evolve();
+//			evolve();
+			Debug.LogError("Not evolving!");
 			gScores = new StatsControl.GenerationStats[NUM_DNA];
 		}
 	}
@@ -65,14 +66,14 @@ public class ForceDecisionControl : DecisionControl {
 		} else {
 			s = (gs.completed * CompletedMult) + (gs.averageTime * AverageTimeMult) + (gs.birdCollisions * BirdCollisionMult) + (gs.wallCollisions * WallCollisionMult);
 		}
-		return Mathf.Max(1,s); // Score will always be greater than 0
+		return Mathf.Max(1, s); // Score will always be greater than 0
 	}
 
 	private void evolve() {
 		float sum = 0;
 		bool onlyGoalReached = false;
 		foreach (StatsControl.GenerationStats gs in gScores) {
-			if (gs.completed < gs.numBirds*CompletedPercentage) {
+			if (gs.completed < gs.numBirds * CompletedPercentage) {
 				onlyGoalReached = true;
 			}
 		}
@@ -106,13 +107,16 @@ public class ForceDecisionControl : DecisionControl {
 			float[] parent2 = ForceDNA.FactorDictToList(allFactors [p2]);
 			print(p1 + "," + p2);
 			float[] child = new float[parent1.Length];
-			// Using single crossover, so the first portion comes from parent1 and the second portion from parent2
-			int crossover = Random.Range(0,child.Length);
-			for (int i = 0; i < child.Length; i++) {
-				if (i<=crossover) {
-					child [i] = parent1 [i];
-				} else {
-					child [i] = parent2 [i];
+			// Using uniform crossover, so a genome has an equal chance to come from either parent
+			foreach (ForceDNA.Factor[] genome in ForceDNA.genomes) {
+				float p = Random.value;
+				foreach (ForceDNA.Factor f in genome) {
+					int i = (int)f;
+					if (p <= .5f) {
+						child [i] = parent1 [i];
+					} else {
+						child [i] = parent2 [i];
+					}
 				}
 			}
 			newFactors [currentChild] = child;
@@ -153,7 +157,7 @@ public class ForceDecisionControl : DecisionControl {
 	}
 
 	private Vector2 cohesion(BirdControl[] birds, BirdControl me) {
-		Vector2 force = Vector2.zero;
+		Vector2 sumPosition = Vector2.zero;
 		foreach (BirdControl b in birds) {
 			if (b.Equals(me)) {
 				continue;
@@ -163,14 +167,10 @@ public class ForceDecisionControl : DecisionControl {
 			if (dist > currentFactor [ForceDNA.Factor.CohesCutoff]) {
 				continue;
 			}
-			Vector2 norm = delta / dist;
-			float massFactor = Mathf.Pow(b.Mass, currentFactor [ForceDNA.Factor.CohesMassExp]);
-			float distFactor = Mathf.Pow(dist, currentFactor [ForceDNA.Factor.CohesDistExp]);
-			force += norm * massFactor * distFactor;
+			sumPosition += (Vector2)b.transform.position;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, currentFactor [ForceDNA.Factor.CohesMassExp]);
-		force *= currentFactor [ForceDNA.Factor.CohesConst] * myMassFactor;
-		return force;
+		Vector2 force = (sumPosition - (Vector2)me.transform.position);
+		return force.normalized * currentFactor [ForceDNA.Factor.CohesConst];
 	}
 
 	private Vector2 repulsion(BirdControl[] birds, BirdControl me) {
@@ -185,13 +185,10 @@ public class ForceDecisionControl : DecisionControl {
 				continue;
 			}
 			Vector2 norm = delta / dist;
-			float massFactor = Mathf.Pow(b.Mass, currentFactor [ForceDNA.Factor.RepulsMassExp]);
 			float distFactor = Mathf.Pow(dist, currentFactor [ForceDNA.Factor.RepulsDistExp]);
-			force += norm * massFactor * distFactor;
+			force += norm * distFactor;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, currentFactor [ForceDNA.Factor.RepulsMassExp]);
-		force *= currentFactor [ForceDNA.Factor.RepulsConst] * myMassFactor;
-		return force;
+		return force.normalized * currentFactor [ForceDNA.Factor.RepulsConst];
 	}
 
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
@@ -210,14 +207,9 @@ public class ForceDecisionControl : DecisionControl {
 				continue;
 			}
 			Vector2 norm = b.Velocity / speed;
-			float massFactor = Mathf.Pow(b.Mass, currentFactor [ForceDNA.Factor.AlignMassExp]);
-			float distFactor = Mathf.Pow(dist, currentFactor [ForceDNA.Factor.AlignDistExp]);
-			float speedFactor = Mathf.Pow(speed, currentFactor [ForceDNA.Factor.AlignSpeedExp]);
-			force += norm * massFactor * distFactor * speedFactor;
+			force += norm;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, currentFactor [ForceDNA.Factor.AlignMassExp]);
-		force *= currentFactor [ForceDNA.Factor.AlignConst] * myMassFactor;
-		return force;
+		return force.normalized * currentFactor [ForceDNA.Factor.AlignConst];
 	}
 
 	private Vector2 obstacle(GameObject[] walls, BirdControl me) {
@@ -233,9 +225,7 @@ public class ForceDecisionControl : DecisionControl {
 			float distFactor = Mathf.Pow(dist, currentFactor [ForceDNA.Factor.ObstclDistExp]);
 			force += norm * distFactor;
 		}
-		float myMassFactor = Mathf.Pow(me.Mass, currentFactor [ForceDNA.Factor.ObstclMassExp]);
-		force *= currentFactor [ForceDNA.Factor.ObstclConst] * myMassFactor;
-		return force;
+		return force.normalized * currentFactor [ForceDNA.Factor.ObstclConst];
 	}
 
 	private Vector2 reward(GameObject goal, BirdControl me) {
@@ -245,9 +235,8 @@ public class ForceDecisionControl : DecisionControl {
 			return Vector2.zero;
 		}
 		Vector2 norm = delta / dist;
-		float distFactor = Mathf.Pow(dist, currentFactor [ForceDNA.Factor.RewardDistExp]);
-		float myMassFactor = Mathf.Pow(me.Mass, currentFactor [ForceDNA.Factor.RewardMassExp]);
-		return norm * distFactor * myMassFactor * currentFactor [ForceDNA.Factor.RewardConst];
+		return norm * currentFactor [ForceDNA.Factor.RewardConst];
+
 	}
 
 	private void Start() {
@@ -262,6 +251,9 @@ public class ForceDecisionControl : DecisionControl {
 		public static readonly float MIN_CUTOFF_VALUE = 5f;
 		public static readonly float MAX_CUTOFF_VALUE = 25f;
 
+		public static readonly float MIN_LIMIT_VALUE = 10f;
+		public static readonly float MAX_LIMIT_VALUE = 50f;
+
 		public static readonly float MIN_FACTOR_MUTATION = -.1f;
 		public static readonly float MAX_FACTOR_MUTATION = .1f;
 
@@ -272,31 +264,81 @@ public class ForceDecisionControl : DecisionControl {
 			CohesDistExp,
 			CohesConst,
 			CohesCutoff,
+			CohesLimit,
 
 			RepulsMassExp,
 			RepulsDistExp,
 			RepulsForceExp,
 			RepulsConst,
 			RepulsCutoff,
+			RepulsLimit,
+
 
 			// Actually the exponent for the bird's mass as the goal has infinite mass
 			RewardMassExp,
 			RewardDistExp,
 			RewardConst,
 			RewardCutoff,
+			RewardLimit,
+
 
 			// As above, the exponent for the bird's mass in the attraction to the obstacles
 			ObstclMassExp,
 			ObstclDistExp,
 			ObstclConst,
 			ObstclCutoff,
+			ObstclLimit,
+
 
 			AlignMassExp,
 			AlignDistExp,
 			AlignSpeedExp,
 			AlignConst,
-			AlignCutoff
+			AlignCutoff,
+			AlignLimit,
+
 		}
+
+		public static readonly Factor[][] genomes = new Factor[][] { 
+			new Factor[] { 
+				Factor.CohesMassExp,
+				Factor.CohesDistExp,
+				Factor.CohesConst,
+				Factor.CohesCutoff,
+				Factor.CohesLimit,
+			}, 
+			new Factor[] {
+				Factor.RepulsMassExp,
+				Factor.RepulsDistExp,
+				Factor.RepulsForceExp,
+				Factor.RepulsConst,
+				Factor.RepulsCutoff,
+				Factor.RepulsLimit,
+			},      
+			new Factor[] { 
+				Factor.RewardMassExp,
+				Factor.RewardDistExp,
+				Factor.RewardConst,
+				Factor.RewardCutoff,
+				Factor.RewardLimit,
+			}, 
+			new Factor[] { 
+				Factor.ObstclMassExp,
+				Factor.ObstclDistExp,
+				Factor.ObstclConst,
+				Factor.ObstclCutoff,
+				Factor.ObstclLimit,
+			}, 
+			new Factor[] {
+				Factor.AlignMassExp,
+				Factor.AlignDistExp,
+				Factor.AlignSpeedExp,
+				Factor.AlignConst,
+				Factor.AlignCutoff,
+				Factor.AlignLimit,
+			},
+		};
+
 
 		public static Dictionary<Factor, float> FactorListToDict(float[] fl) {
 			Dictionary<Factor, float> fd = new Dictionary<Factor, float>();
@@ -318,19 +360,27 @@ public class ForceDecisionControl : DecisionControl {
 
 		public static Dictionary<Factor, float> GenerateFactorDict() {
 			float[] fl = new float[System.Enum.GetNames(typeof(Factor)).Length];
-			for (int i = 0; i < fl.Length; i++) {
-				fl [i] = Random.Range(MIN_FACTOR_VALUE, MAX_FACTOR_VALUE);
-			}
+			Dictionary<Factor, float> fd = FactorListToDict(fl);
 
-			// Though we could also seed this factors the same as the others, they represent something inherently different and starting them higher
-			// increases our chances that some forces actually start to influence the birds
-			fl [(int)Factor.CohesCutoff] = Random.Range(MIN_CUTOFF_VALUE, MAX_CUTOFF_VALUE);
-			fl [(int)Factor.RepulsCutoff] = Random.Range(MIN_CUTOFF_VALUE, MAX_CUTOFF_VALUE);
-			fl [(int)Factor.RewardCutoff] = Random.Range(MIN_CUTOFF_VALUE, MAX_CUTOFF_VALUE);
-			fl [(int)Factor.ObstclCutoff] = Random.Range(MIN_CUTOFF_VALUE, MAX_CUTOFF_VALUE);
-			fl [(int)Factor.AlignCutoff] = Random.Range(MIN_CUTOFF_VALUE, MAX_CUTOFF_VALUE);
+			fd[Factor.CohesConst] = 3;
+			fd[Factor.CohesCutoff] = 10;
 
-			return FactorListToDict(fl);
+			fd[Factor.RepulsDistExp] = 1/2f;
+			fd[Factor.RepulsConst] = -2;
+			fd[Factor.RepulsCutoff] = 6;
+
+			fd[Factor.AlignConst] = 1;
+			fd[Factor.AlignCutoff] = 4;
+
+			fd[Factor.ObstclDistExp] = 1/2f;
+			fd[Factor.ObstclConst] = -4;
+			fd[Factor.ObstclCutoff] = 6;
+
+			fd[Factor.RewardConst] = 3;
+			fd[Factor.RewardCutoff] = 50;
+
+
+			return fd;
 		}
 	}
 }
