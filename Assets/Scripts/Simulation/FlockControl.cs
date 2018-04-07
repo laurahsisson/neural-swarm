@@ -16,8 +16,8 @@ public class FlockControl : MonoBehaviour {
 	private StatsControl statsControl;
 	private UIControl uiControl;
 
-	private readonly float ROOM_WIDTH = 50; // Usually 75
-	private readonly float ROOM_HEIGHT = 40; // Usually 60
+	private readonly float ROOM_WIDTH = 75;
+	private readonly float ROOM_HEIGHT = 60;
 
 	private BirdControl[] birdControls;
 	private readonly int NUM_BIRDS = 50; // Usually 100

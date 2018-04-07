@@ -17,8 +17,26 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float MAX_OBTSCL_FORCE = 100;
 
 	private static readonly float REWARD_CONST = 5f;
+	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
+
+	private struct BirdTuple {
+		public int b1;
+		public int b2;
+		public BirdTuple(int bl, int br){
+			b1 = Mathf.Min(bl,br);
+			b2 = Mathf.Max(bl,br);
+		}
+	}
 
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
+		for (int i = 0; i < us.birds.Length; i++) {
+			for (int j = i+1; j < us.birds.Length; j++) {
+				BirdControl b1 = us.birds[i];
+				BirdControl b2 = us.birds[j];
+				Vector2 d = minDelta(b1,b2);
+				btDistances[new BirdTuple(i,j)] = d;
+			}
+		}
 		Vector2[] forces = new Vector2[us.birds.Length];
 		for (int i = 0; i < forces.Length; i++) {
 			forces [i] = getForce(us, i);
@@ -32,7 +50,7 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 cohes = cohesion(us.birds, me);
 		Vector2 repul = repulsion(us.birds, me);
 		Vector2 obstcl = obstacle(us.walls, me);
-		Vector2 goal = reward(us.goal, me);
+		Vector2 goal = Vector2.zero; //reward(us.goal, me);
 		Vector2 force = align + cohes + repul + obstcl + goal;
 		return force.normalized * me.Speed;
 	}
@@ -44,8 +62,9 @@ public class ForceDecisionControl : DecisionControl {
 			if (b.Equals(me)) {
 				continue;
 			}
-			ColliderDistance2D cd = me.GetComponent<Collider2D>().Distance(b.GetComponent<Collider2D>());
-			if (cd.distance > FLOCK_DISTANCE) {
+			BirdTuple bt = new BirdTuple(me.Number,b.Number);
+			Vector2 delta = getDelta(bt,me.Number);
+			if (delta.magnitude > FLOCK_DISTANCE) {
 				continue;
 			}
 			sumPosition += (Vector2)b.transform.position;
@@ -66,17 +85,18 @@ public class ForceDecisionControl : DecisionControl {
 			if (b.Equals(me)) {
 				continue;
 			}
-			ColliderDistance2D cd = me.GetComponent<Collider2D>().Distance(b.GetComponent<Collider2D>());
-			if (cd.distance > REPUL_DISTANCE) {
+			BirdTuple bt = new BirdTuple(me.Number,b.Number);
+			Vector2 delta = getDelta(bt,me.Number);
+			if (delta.magnitude > REPUL_DISTANCE) {
 				continue;
 			}
 			float distFactor = 0;
-			if (cd.distance == 0) {
+			if (delta.magnitude == 0) {
 				distFactor = 1 / MAX_REPUL_FORCE;
 			} else {
-				distFactor = Mathf.Pow(cd.distance,2);
+				distFactor = Mathf.Pow(delta.magnitude,2);
 			}
-			force += ((Vector2)me.transform.position - cd.pointB).normalized / distFactor;
+			force += -1*delta.normalized / distFactor;
 		}
 		return force.normalized * REPUL_CONST;
 	}
@@ -87,8 +107,9 @@ public class ForceDecisionControl : DecisionControl {
 			if (b.Equals(me)) {
 				continue;
 			}
-			ColliderDistance2D cd = me.GetComponent<Collider2D>().Distance(b.GetComponent<Collider2D>());
-			if (cd.distance > FLOCK_DISTANCE) {
+			BirdTuple bt = new BirdTuple(me.Number,b.Number);
+			Vector2 delta = getDelta(bt,me.Number);
+			if (delta.magnitude > FLOCK_DISTANCE) {
 				continue;
 			}
 			force += b.Velocity.normalized;
@@ -119,5 +140,35 @@ public class ForceDecisionControl : DecisionControl {
 		return (goal.transform.position-me.transform.position).normalized*REWARD_CONST;
 	}
 
+	private Vector2 minDelta(BirdControl b1, BirdControl b2) {
+		Vector2 b1FuturePos = (Vector2)b1.transform.position+b1.Velocity;
+		Vector2 b2FuturePos = (Vector2)b2.transform.position+b2.Velocity;
+
+		Vector2 current = (Vector2)(b2.transform.position-b1.transform.position);
+		Vector2 b1Future = ((Vector2)b2.transform.position-b1FuturePos);
+		Vector2 b2Future = (b2FuturePos-(Vector2)b1.transform.position);
+		Vector2 future = (b2FuturePos-b1FuturePos);
+		Vector2[] ds = new Vector2[]{current,b1Future,b2Future,future};
+
+		float minDist = Mathf.Infinity;
+		Vector2 minD = Vector2.zero;
+		for (int i = 0; i < ds.Length; i++) {
+			float mag = ds[i].magnitude;
+			if (mag<minDist) {
+				minDist = mag;
+				minD = ds[i];
+			}
+		}
+		return minD;
+	}
+
+	private Vector2 getDelta(BirdTuple bt, int number) {
+		Vector2 delta = btDistances[bt];
+		if (number == bt.b1) {
+			return delta;
+		} else {
+			return -1*delta;
+		}
+	}
 }
 
