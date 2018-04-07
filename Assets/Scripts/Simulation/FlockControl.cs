@@ -29,7 +29,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MAX_SPEED = 9f;
 
 	private GameObject[] walls;
-	private readonly int NUM_RANDOM_WALLS = 3; // Usually 8
+	private readonly int NUM_RANDOM_WALLS = 8;
 	private readonly float WALL_MAX_WIDTH = 10f;
 	private readonly float WALL_MIN_WIDTH = 2f;
 	// Walls are constrained to have fixed area, so width = area/height
