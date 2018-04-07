@@ -17,6 +17,11 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float MAX_OBTSCL_FORCE = 100;
 
 	private static readonly float REWARD_CONST = 5f;
+
+	private static readonly float BOUNDARY_PERCENT = .2f;
+	private static readonly float BOUNDARY_CONST = 4f;
+	private static readonly float MAX_BOUNDARY_FORCE = 100;
+
 	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
 
 	private struct BirdTuple {
@@ -28,13 +33,16 @@ public class ForceDecisionControl : DecisionControl {
 		}
 	}
 
+	public override void EndGeneration(StatsControl.GenerationStats gs) {
+		print(gs.completed + "," + gs.birdCollisions);
+	}
+
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
 		for (int i = 0; i < us.birds.Length; i++) {
 			for (int j = i+1; j < us.birds.Length; j++) {
 				BirdControl b1 = us.birds[i];
 				BirdControl b2 = us.birds[j];
-				Vector2 d = minDelta(b1,b2);
-				btDistances[new BirdTuple(i,j)] = d;
+				btDistances[new BirdTuple(i,j)] = minDelta(b1,b2);
 			}
 		}
 		Vector2[] forces = new Vector2[us.birds.Length];
@@ -50,8 +58,11 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 cohes = cohesion(us.birds, me);
 		Vector2 repul = repulsion(us.birds, me);
 		Vector2 obstcl = obstacle(us.walls, me);
-		Vector2 goal = Vector2.zero; //reward(us.goal, me);
+		Vector2 goal = reward(us.goal, me);
 		Vector2 force = align + cohes + repul + obstcl + goal;
+		if (birdNumber == 0) {
+			Debug.DrawRay(me.transform.position,me.Velocity);
+		}
 		return force.normalized * me.Speed;
 	}
 
@@ -59,7 +70,7 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 sumPosition = Vector2.zero;
 		int count = 0;
 		foreach (BirdControl b in birds) {
-			if (b.Equals(me)) {
+			if (b.Equals(me) || !b.Moving) {
 				continue;
 			}
 			BirdTuple bt = new BirdTuple(me.Number,b.Number);
@@ -82,7 +93,7 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 force = Vector2.zero;
 		int count = 0;
 		foreach (BirdControl b in birds) {
-			if (b.Equals(me)) {
+			if (b.Equals(me) || !b.Moving) {
 				continue;
 			}
 			BirdTuple bt = new BirdTuple(me.Number,b.Number);
@@ -96,7 +107,12 @@ public class ForceDecisionControl : DecisionControl {
 			} else {
 				distFactor = Mathf.Pow(delta.magnitude,2);
 			}
-			force += -1*delta.normalized / distFactor;
+			Vector2 newForce = -1*delta.normalized / distFactor;
+			force += newForce;
+			if (me.Number == 0){
+				Debug.DrawRay(me.transform.position,newForce*10, Color.red);
+				Debug.DrawRay(b.transform.position,-1*newForce*10, Color.red);
+			}
 		}
 		return force.normalized * REPUL_CONST;
 	}
@@ -104,7 +120,7 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
-			if (b.Equals(me)) {
+			if (b.Equals(me) || !b.Moving) {
 				continue;
 			}
 			BirdTuple bt = new BirdTuple(me.Number,b.Number);
@@ -140,9 +156,9 @@ public class ForceDecisionControl : DecisionControl {
 		return (goal.transform.position-me.transform.position).normalized*REWARD_CONST;
 	}
 
-	private Vector2 minDelta(BirdControl b1, BirdControl b2) {
-		Vector2 b1FuturePos = (Vector2)b1.transform.position+b1.Velocity;
-		Vector2 b2FuturePos = (Vector2)b2.transform.position+b2.Velocity;
+	private Vector2 minDelta(BirdControl b1, BirdControl b2) {	
+		Vector2 b1FuturePos = (Vector2)b1.transform.position+b1.Velocity*Time.deltaTime;
+		Vector2 b2FuturePos = (Vector2)b2.transform.position+b2.Velocity*Time.deltaTime;
 
 		Vector2 current = (Vector2)(b2.transform.position-b1.transform.position);
 		Vector2 b1Future = ((Vector2)b2.transform.position-b1FuturePos);
@@ -162,6 +178,7 @@ public class ForceDecisionControl : DecisionControl {
 		return minD;
 	}
 
+
 	private Vector2 getDelta(BirdTuple bt, int number) {
 		Vector2 delta = btDistances[bt];
 		if (number == bt.b1) {
@@ -170,5 +187,6 @@ public class ForceDecisionControl : DecisionControl {
 			return -1*delta;
 		}
 	}
+
 }
 
