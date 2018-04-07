@@ -128,6 +128,7 @@ public class FlockControl : MonoBehaviour {
 			float size = Random.Range(MIN_SIZE, MAX_SIZE);
 			float speed = Random.Range(MIN_SPEED, MAX_SPEED);
 			bird.Setup(size, speed, i);
+			bird.SetForce(new Vector2(Random.value-.5f,Random.value-.5f).normalized*bird.Speed);
 			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
 		}
 
