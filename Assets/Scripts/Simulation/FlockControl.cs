@@ -36,7 +36,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float WALL_MAX_AREA = 12f;
 	private readonly float WALL_MIN_AREA = 8f;
 
-	private readonly float SIMULATION_SPEED = 2f;
+	private readonly float SIMULATION_SPEED = 1f;
 	private readonly float FRAMES_PER_SECOND = 30f;
 
 	private GameObject goal;
@@ -95,28 +95,17 @@ public class FlockControl : MonoBehaviour {
 			birdControls [i] = bird;
 		}
 
-		walls = new GameObject[NUM_RANDOM_WALLS + 4];
+		walls = new GameObject[NUM_RANDOM_WALLS];
 		for (int i = 0; i < walls.Length; i++) {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
 		}
-		walls [NUM_RANDOM_WALLS].transform.position = new Vector3(-1, ROOM_HEIGHT / 2);
-		walls [NUM_RANDOM_WALLS].transform.localScale = new Vector3(1, ROOM_HEIGHT, 1);
-
-		walls [NUM_RANDOM_WALLS + 1].transform.position = new Vector3(ROOM_WIDTH+1, ROOM_HEIGHT / 2);
-		walls [NUM_RANDOM_WALLS + 1].transform.localScale = new Vector3(1, ROOM_HEIGHT, 1);
-
-		walls [NUM_RANDOM_WALLS + 2].transform.position = new Vector3(ROOM_WIDTH / 2, -1);
-		walls [NUM_RANDOM_WALLS + 2].transform.localScale = new Vector3(ROOM_WIDTH, 1, 1);
-
-		walls [NUM_RANDOM_WALLS + 3].transform.position = new Vector3(ROOM_WIDTH / 2, ROOM_HEIGHT+1);
-		walls [NUM_RANDOM_WALLS + 3].transform.localScale = new Vector3(ROOM_WIDTH, 1, 1);
-
 		resetSimulation();
 	}
 
 	public void IncrementGoal() {
 		reachedGoal++;
 		if (reachedGoal == NUM_BIRDS) {
+			endSimulation();
 		}
 	}
 
