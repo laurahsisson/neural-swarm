@@ -20,7 +20,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 60;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 50; // Usually 100
+	private readonly int NUM_BIRDS = 1; // Usually 50
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -54,6 +54,7 @@ public class FlockControl : MonoBehaviour {
 		public GameObject goal;
 		public float roomWidth;
 		public float roomHeight;
+		public float maxSize;
 	}
 
 	[System.Serializable]
@@ -158,7 +159,7 @@ public class FlockControl : MonoBehaviour {
 		statsControl.Setup(NUM_BIRDS, MAX_TIME);
 		uiControl.AwaitingText();
 		if (!callingPython) {
-			decisionControl.StartGeneration();
+			decisionControl.StartGeneration(buildUnityState());
 		}
 		startTime = Time.time;
 		hasReceivedStart = false;
@@ -172,6 +173,7 @@ public class FlockControl : MonoBehaviour {
 		us.goal = goal;
 		us.roomHeight = ROOM_HEIGHT;
 		us.roomWidth = ROOM_WIDTH;
+		us.maxSize = MAX_SIZE;
 		return us;
 	}
 

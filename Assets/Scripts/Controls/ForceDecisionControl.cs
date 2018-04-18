@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class ForceDecisionControl : DecisionControl {
+	public PathfindControl pf;
+
 	private static readonly float FLOCK_DISTANCE = 10;
 	private static readonly float COHESION_FORCE = 1; // The maximum force all cohesion can apply
 	private static readonly float ALIGN_FORCE = 1.5F;
@@ -39,6 +41,10 @@ public class ForceDecisionControl : DecisionControl {
 			b1 = Mathf.Min(bl, br);
 			b2 = Mathf.Max(bl, br);
 		}
+	}
+
+	public override void StartGeneration(FlockControl.UnityState us) {
+		pf.InitializeGrid(us);
 	}
 
 	public override void EndGeneration(StatsControl.GenerationStats gs) {
@@ -84,14 +90,15 @@ public class ForceDecisionControl : DecisionControl {
 
 	private Vector2 getForce(FlockControl.UnityState us, int birdNumber) {
 		BirdControl me = us.birds [birdNumber];
-		Vector2 align = aligment(us.birds, me);
-		Vector2 cohes = cohesion(us.birds, me);
-		Vector2 repul = repulsion(us.birds, me);
-		Vector2 obstcl = obstacle(us.walls, me);
-		Vector2 goal = reward(us.goal, me);
-		Vector2 bndry = boundary(us, me);
-		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
-
+//		Vector2 align = aligment(us.birds, me);
+//		Vector2 cohes = cohesion(us.birds, me);
+//		Vector2 repul = repulsion(us.birds, me);
+//		Vector2 obstcl = obstacle(us.walls, me);
+//		Vector2 goal = reward(us.goal, me);
+//		Vector2 bndry = boundary(us, me);
+//		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
+		Vector2 force = Vector2.zero;
+		pf.CalculatePath(us,me);
 		// We want to steer our current velocity towards our aim velocity, so take the average of the two and reflect it over the goal
 		// That way we aim in a way that slows us down only in the desired dimension, and speeds us up in the correct dimension.
 

@@ -7,7 +7,7 @@ public class DecisionControl : MonoBehaviour {
 	public virtual void InitializeModel() {
 	}
 
-	public virtual void StartGeneration() {
+	public virtual void StartGeneration(FlockControl.UnityState us) {
 	}
 
 	public virtual Vector2[] MakeDecisions(FlockControl.UnityState us) {
