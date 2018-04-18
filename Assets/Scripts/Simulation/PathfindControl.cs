@@ -4,7 +4,7 @@ using UnityEngine;
 
 
 public class PathfindControl : MonoBehaviour {
-	private readonly float GRID_STEP = .5f;
+	private readonly float GRID_STEP = .1f;
 	private readonly int NUM_COLLIDERS = 10; // The max number of colliders we will check against
 	private readonly float CUTOFF_DIST = 1.5f; // Overestimation of sqrt(2). If we are within one unit square of the goal we are good to stop
 
@@ -34,11 +34,12 @@ public class PathfindControl : MonoBehaviour {
 
 	public void InitializeGrid(FlockControl.UnityState us) {
 		CircleCollider2D cd = GetComponent<CircleCollider2D>();
-		gameObject.transform.localScale=new Vector3(us.maxSize,us.maxSize);
+		gameObject.transform.localScale=new Vector3(us.maxSize*2,us.maxSize*2);
 		ContactFilter2D cf = new ContactFilter2D();
 		cf.useTriggers=true;
 		cf.layerMask = LayerMask.GetMask("Wall");
 		cf.useLayerMask = true;
+		print(cf.layerMask.value);
 		Collider2D[] others = new Collider2D[NUM_COLLIDERS];
 		grid = new bool[(int)(us.roomWidth/GRID_STEP),(int)(us.roomHeight/GRID_STEP)];
 			
@@ -109,10 +110,10 @@ public class PathfindControl : MonoBehaviour {
 			positions[i]=p/GRID_STEP;
 			i++;
 		}
-
 		for (i = 0; i < positions.Length - 1; i++) {
 			Debug.DrawLine(positions[i],positions[i+1],Color.red);
 		}
+
 		return positions;
 	}
 
@@ -135,7 +136,10 @@ public class PathfindControl : MonoBehaviour {
 				if (y<0 || y>= grid.GetLength(1)) {
 					continue;
 				}
-				ns.Add(pos);
+
+				if (grid[x,y]) {
+					ns.Add(pos);
+				}
 			}
 		}
 		return ns;

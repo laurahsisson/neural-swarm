@@ -7,22 +7,28 @@ public class ForceDecisionControl : DecisionControl {
 	public PathfindControl pf;
 
 	private static readonly float FLOCK_DISTANCE = 10;
-	private static readonly float COHESION_FORCE = 1; // The maximum force all cohesion can apply
+	private static readonly float COHESION_FORCE = 1; // The maximum sum force of cohesion
 	private static readonly float ALIGN_FORCE = 1.5F;
 
 	private static readonly float REPULSE_DISTANCE = 3;
+
 	private static readonly float REPULSE_FORCE = 3f;
-	private static readonly float REPULSE_CONST = 100; // The constant times each individual birds exertion
+
+	private static readonly float REPULSE_CONST = 100; // The constant times each individual birds exertion 
+	// The higher const is the more equally weighted near and far objects will be
+
 	private static readonly float REPULSE_ASYMPTOTE = 200; // The maximum force an individual bird may exert
+	// The higher the asymptote is the more strongly weighted very close objects are (distance of less than 1)
 
 	private static readonly float OBSTACLE_DISTANCE = 3;
 	private static readonly float OBSTACLE_FORCE = 4f;
 	private static readonly float OBSTACLE_CONST = 100; 
 	private static readonly float OBSTACLE_ASYMPTOTE = 200; 
 
-	private static readonly float REWARD_DISTANCE = 40f;
-	private static readonly float REWARD_FORCE = 10f;
+	private static readonly float REWARD_DISTANCE = 15;
+	private static readonly float REWARD_FORCE = 8f;
 	private static readonly float REWARD_CONST = 100; 
+	private static readonly float REWARD_ASYMPTOTE = 200; 
 
 	private static readonly float BOUNDARY_DISTANCE = 15f;
 	private static readonly float BOUNDARY_FORCE = 6; 
@@ -97,8 +103,9 @@ public class ForceDecisionControl : DecisionControl {
 //		Vector2 goal = reward(us.goal, me);
 //		Vector2 bndry = boundary(us, me);
 //		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
-		Vector2 force = Vector2.zero;
-		pf.CalculatePath(us,me);
+		Vector2[] path = pf.CalculatePath(us,me);
+		Vector2 goal = reward(path,me);
+		Vector2 force = goal;
 		// We want to steer our current velocity towards our aim velocity, so take the average of the two and reflect it over the goal
 		// That way we aim in a way that slows us down only in the desired dimension, and speeds us up in the correct dimension.
 
@@ -150,7 +157,6 @@ public class ForceDecisionControl : DecisionControl {
 
 	private Vector2 repulsion(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
-		int count = 0;
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = -1 * getDelta(bt, me.Number); // getDelta points to the other birds, so reverse it
@@ -165,7 +171,6 @@ public class ForceDecisionControl : DecisionControl {
 
 	private Vector2 obstacle(GameObject[] walls, BirdControl me) {
 		Vector2 force = Vector2.zero;
-		int count = 0;
 		foreach (GameObject wall in walls) {
 			ColliderDistance2D cd = me.GetComponent<Collider2D>().Distance(wall.GetComponent<Collider2D>());
 			if (cd.distance > OBSTACLE_DISTANCE) {
@@ -177,15 +182,29 @@ public class ForceDecisionControl : DecisionControl {
 		return Vector2.ClampMagnitude(force, OBSTACLE_FORCE);
 	}
 
-	private Vector2 reward(GameObject goal, BirdControl me) {
-		Vector2 delta = (goal.transform.position - me.transform.position);
+	private Vector2 reward(Vector2[] path, BirdControl me) {
+		Vector2 delta = (path[1] - (Vector2) me.transform.position);
 		float dist = delta.magnitude;
+		print(dist);
 		if (dist>REWARD_DISTANCE) {
 			return Vector2.zero;
 		}
 		// As there is only one reward, force does not have an asymptote, and indvidual force will clamp for us
 		return individualForce(delta,REWARD_CONST,REWARD_FORCE);
 	}
+
+//	private Vector2 reward(Vector2[] path, BirdControl me) {
+//		Vector2 force = Vector2.zero;
+//		foreach (Vector2 p in path) {
+//			Vector2 delta = (p-(Vector2)me.transform.position);
+//			if (delta.magnitude > REWARD_DISTANCE || delta.magnitude == 0) {
+//				continue;
+//			}
+//			Debug.DrawRay(me.transform.position,delta);
+//			force += individualForce(delta,REWARD_CONST,REWARD_ASYMPTOTE);
+//		}
+//		return Vector2.ClampMagnitude(force, REWARD_FORCE);
+//	}
 
 	private Vector2 boundary(FlockControl.UnityState us, BirdControl me) {
 		float xForce = 0;
