@@ -1,8 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class StatsControl : MonoBehaviour {
+	public Text text;
+
 	private int wallCollisions;
 	private int birdCollisions;
 	private float[] completionTimes;
@@ -95,6 +96,10 @@ public class StatsControl : MonoBehaviour {
 		ps.wallCollisions = wallCollisions;
 		ps.numBirds = completionTimes.Length;
 		return ps;
+	}
+
+	private void Update() {
+		text.text = "Completed: " + completed.ToString() + "\t\t" + "Bird\\Bird: " + birdCollisions + "\t\t" + "Bird\\Wall: " + wallCollisions;
 	}
 
 }

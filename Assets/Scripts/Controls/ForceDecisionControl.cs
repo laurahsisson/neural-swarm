@@ -28,6 +28,8 @@ public class ForceDecisionControl : DecisionControl {
 
 
 	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
+	private List<BirdControl>[] nearbyBirds;
+
 
 	private struct BirdTuple {
 		public int b1;
@@ -44,13 +46,35 @@ public class ForceDecisionControl : DecisionControl {
 	}
 
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
+		nearbyBirds = new List<BirdControl>[us.birds.Length];
 		for (int i = 0; i < us.birds.Length; i++) {
+			nearbyBirds[i] = new List<BirdControl>();
+		}
+
+		float maxRange = Mathf.Max(REPULSE_DISTANCE,FLOCK_DISTANCE);
+		for (int i = 0; i < us.birds.Length; i++) {
+			BirdControl b1 = us.birds [i];
+			if (!b1.Moving) {
+				continue;
+			}
+
 			for (int j = i + 1; j < us.birds.Length; j++) {
-				BirdControl b1 = us.birds [i];
 				BirdControl b2 = us.birds [j];
-				btDistances [new BirdTuple(i, j)] = minDelta(b1, b2);
+				if (!b2.Moving) {
+					continue;
+				}
+
+				Vector2 d = minDelta(b1, b2);
+				btDistances [new BirdTuple(i, j)] = d;
+		
+				if (d.magnitude > maxRange) {
+					continue;
+				}
+				nearbyBirds[i].Add(b2);
+				nearbyBirds[j].Add(b1);
 			}
 		}
+
 		Vector2[] forces = new Vector2[us.birds.Length];
 		for (int i = 0; i < forces.Length; i++) {
 			forces [i] = getForce(us, i);
@@ -87,10 +111,7 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 cohesion(BirdControl[] birds, BirdControl me) {
 		Vector2 sumPosition = Vector2.zero;
 		int count = 0;
-		foreach (BirdControl b in birds) {
-			if (b.Equals(me) || !b.Moving) {
-				continue;
-			}
+		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = getDelta(bt, me.Number);
 			if (delta.magnitude > FLOCK_DISTANCE) {
@@ -109,10 +130,7 @@ public class ForceDecisionControl : DecisionControl {
 		
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
-		foreach (BirdControl b in birds) {
-			if (b.Equals(me) || !b.Moving) {
-				continue;
-			}
+		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = getDelta(bt, me.Number);
 			if (delta.magnitude > FLOCK_DISTANCE) {
@@ -126,10 +144,7 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 repulsion(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		int count = 0;
-		foreach (BirdControl b in birds) {
-			if (b.Equals(me) || !b.Moving) {
-				continue;
-			}
+		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = -1 * getDelta(bt, me.Number); // getDelta points to the other birds, so reverse it
 			if (delta.magnitude > REPULSE_DISTANCE) {

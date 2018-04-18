@@ -261,12 +261,14 @@ public class FlockControl : MonoBehaviour {
 			return;
 		}
 		if (!callingPython) {
+			float updateStart = Time.realtimeSinceStartup;
 			UnityState us = buildUnityState();
 			Vector2[] forces = decisionControl.MakeDecisions(us);
 			Debug.Assert(forces.Length == birdControls.Length);
 			for (int i = 0; i < forces.Length; i++) {
 				birdControls [i].SetForce(forces [i]);
 			}
+			print(Time.realtimeSinceStartup-updateStart);
 		}
 
 
