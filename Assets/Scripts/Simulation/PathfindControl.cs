@@ -4,7 +4,7 @@ using UnityEngine;
 
 
 public class PathfindControl : MonoBehaviour {
-	private readonly float GRID_STEP = .1f;
+	private readonly float GRID_STEP = 1f;
 	private readonly int NUM_COLLIDERS = 10; // The max number of colliders we will check against
 	private readonly float CUTOFF_DIST = 1.5f; // Overestimation of sqrt(2). If we are within one unit square of the goal we are good to stop
 
@@ -39,7 +39,6 @@ public class PathfindControl : MonoBehaviour {
 		cf.useTriggers=true;
 		cf.layerMask = LayerMask.GetMask("Wall");
 		cf.useLayerMask = true;
-		print(cf.layerMask.value);
 		Collider2D[] others = new Collider2D[NUM_COLLIDERS];
 		grid = new bool[(int)(us.roomWidth/GRID_STEP),(int)(us.roomHeight/GRID_STEP)];
 			
@@ -49,7 +48,15 @@ public class PathfindControl : MonoBehaviour {
 				int hit = cd.OverlapCollider(cf,others);
 				int gx = (int)(x/GRID_STEP);
 				int gy = (int)(y/GRID_STEP);
-				grid[gx,gy] = hit==0;
+				if (gx == grid.GetLength(0) || gy == grid.GetLength(1)) {
+					continue;
+				}
+				try {
+					grid[gx,gy] = hit==0;
+				} catch (System.Exception ex) {
+					Debug.Log(gx + "<" + gy);
+					Debug.Log(grid.GetLength(0) + "<" + grid.GetLength(1));
+				}
 			}
 		}
 	}

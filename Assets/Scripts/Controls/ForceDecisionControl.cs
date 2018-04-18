@@ -99,13 +99,13 @@ public class ForceDecisionControl : DecisionControl {
 //		Vector2 align = aligment(us.birds, me);
 //		Vector2 cohes = cohesion(us.birds, me);
 //		Vector2 repul = repulsion(us.birds, me);
-//		Vector2 obstcl = obstacle(us.walls, me);
+		Vector2 obstcl = obstacle(us.walls, me);
 //		Vector2 goal = reward(us.goal, me);
 //		Vector2 bndry = boundary(us, me);
 //		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
 		Vector2[] path = pf.CalculatePath(us,me);
 		Vector2 goal = reward(path,me);
-		Vector2 force = goal;
+		Vector2 force = goal + obstcl;
 		// We want to steer our current velocity towards our aim velocity, so take the average of the two and reflect it over the goal
 		// That way we aim in a way that slows us down only in the desired dimension, and speeds us up in the correct dimension.
 
@@ -183,6 +183,9 @@ public class ForceDecisionControl : DecisionControl {
 	}
 
 	private Vector2 reward(Vector2[] path, BirdControl me) {
+		if (path.Length == 0) {
+			return Vector2.zero;
+		}
 		Vector2 delta = (path[1] - (Vector2) me.transform.position);
 		float dist = delta.magnitude;
 		print(dist);
