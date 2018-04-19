@@ -28,10 +28,8 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float OBSTACLE_CONST = 100;
 	private static readonly float OBSTACLE_ASYMPTOTE = 200;
 
-	// The percentage of birds that attempt to pathfind to the reward
-	private static readonly float MIN_REWARD_CHANCE = .15f;
-	private static readonly float MAX_REWARD_CHANCE = .85f;
-	private static readonly float STEP_REWARD_CHANCE = .2f;
+	// The percentage of birds who should use pathfinding
+	private static readonly float REWARD_PERCENT = .15f;
 
 	private static readonly float REWARD_DISTANCE = 15;
 	private static readonly float REWARD_FORCE = 8f;
@@ -42,12 +40,14 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float BOUNDARY_FORCE = 6;
 	private static readonly float BOUNDARY_CONST = 50;
 
-	private static readonly float VIEW_ANGLE = 90f;
+	private static readonly float VIEW_ANGLE = 45f;
 	// The angle within which we check to see if anyone is leading
 
 	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
 	private List<BirdControl>[] nearbyBirds;
 	private int[] numPathFrames;
+
+	private Vector2[] rewardForces;
 
 
 	private struct BirdTuple {
@@ -99,6 +99,9 @@ public class ForceDecisionControl : DecisionControl {
 			}
 		}
 
+
+		generateRewards(us);
+
 		Vector2[] forces = new Vector2[us.birds.Length];
 		for (int i = 0; i < forces.Length; i++) {
 			forces [i] = getForce(us, i);
@@ -108,22 +111,22 @@ public class ForceDecisionControl : DecisionControl {
 
 	private Vector2 getForce(FlockControl.UnityState us, int birdNumber) {
 		BirdControl me = us.birds [birdNumber];
-		if (!me.Moving) {
-			return Vector2.zero;
-		}
 
 		Vector2 align = aligment(us.birds, me);
 		Vector2 cohes = cohesion(us.birds, me);
 		Vector2 repul = repulsion(us.birds, me);
 		Vector2 obstcl = obstacle(us.walls, me);
-		Vector2 goal = reward(us.goal, me);
+		Vector2 goal = rewardForces[me.Number];//reward(us.goal, me);
 		Vector2 bndry = boundary(us, me);
 		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
+
 		// We want to steer our current velocity towards our aim velocity, so take the average of the two and reflect it over the goal
 		// That way we aim in a way that slows us down only in the desired dimension, and speeds us up in the correct dimension.
 
 		Vector2 vel = me.Velocity.normalized;
 		Vector2 aim = force.normalized;
+		Debug.DrawRay(me.transform.position,aim*10,Color.green);
+
 		Vector2 ave = ((vel + aim) / 2).normalized;
 		Vector2 adjustment = Vector2.zero;
 		// If our aim velocity is close to orthogonal to our current velocity, just steer using our current velocity
@@ -133,6 +136,93 @@ public class ForceDecisionControl : DecisionControl {
 			adjustment = aim;
 		}
 		return adjustment.normalized * me.Speed;
+	}
+
+	private void generateRewards(FlockControl.UnityState us) {
+		int pathfindTokens = (int)(us.birds.Length*REWARD_PERCENT);
+		rewardForces = new Vector2[us.birds.Length];
+		/* Let n be the total number of birds. Our goal in this function to get REWARD_PERCENT of total birds using pathfinding. 
+		 * We generate a number of tokes equal to REWARD_PERCENT * n.
+		 * We prioritize the birds with no leaders, but want to make sure that as the number of active birds falls, we still give away all of our tokens
+		 * to birds that are active. If we have more tokens than active birds, every bird should use pathfinding.
+		 */
+
+		// First we prioritize birds with no leaders
+		int[] birdIndex = range(us.birds.Length);
+		shuffle(birdIndex);
+
+		for (int i = 0; i < birdIndex.Length && pathfindTokens>0; i++) {
+			BirdControl me = us.birds[birdIndex[i]];
+			if (!me.Moving) {
+				continue;
+			}
+
+			bool hasLeader = false;
+			foreach (BirdControl b in nearbyBirds[me.Number]) {
+				hasLeader = hasLeader || inView(b, me);
+			}
+
+			if (hasLeader) {
+				continue;
+			}
+			// This bird has no leader so use a token
+			Vector2[] path = pf.CalculatePath(us.goal.transform.position, me);
+			rewardForces[i] = rewardPathfind(path, me);
+			pathfindTokens-=1;
+		}
+
+		// Now we give out the rest of the tokens
+		birdIndex = range(us.birds.Length);
+		shuffle(birdIndex);
+
+		for (int i = 0; i < birdIndex.Length && pathfindTokens>0; i++) {
+			BirdControl me = us.birds[birdIndex[i]];
+			if (!me.Moving) {
+				continue;
+			}
+			if (rewardForces[i]!=Vector2.zero) {
+				// This bird already received a token
+				continue;
+			}
+			// This bird has received a token
+			Vector2[] path = pf.CalculatePath(us.goal.transform.position, me);
+			rewardForces[i] = rewardPathfind(path, me);
+			pathfindTokens-=1;
+		}
+
+		// The remainder of the birds do not receive tokens and so just do simple pathfinding towards the goal
+		for (int i = 0; i < us.birds.Length; i++) {
+			BirdControl me = us.birds[i];
+			if (!me.Moving) {
+				continue;
+			}
+			if (rewardForces[i]!=Vector2.zero) {
+				// This bird already received a token
+				continue;
+			}
+
+			rewardForces[i] = rewardSimple(us.goal,me);
+		}
+
+	}
+
+	private int[] range(int len) {
+		int[] arr = new int[len];
+		for (int i = 0; i < len; i++) {
+			arr[i]=i;
+		}
+		return arr;
+	}
+
+	private void shuffle(int[] arr) {
+		int count = arr.Length;
+		int last = count - 1;
+		for (int i = 0; i < last; ++i) {
+			int r = Random.Range(i, count);
+			int tmp = arr[i];
+			arr[i] = arr[r];
+			arr[r] = tmp;
+		}
 	}
 
 	private Vector2 cohesion(BirdControl[] birds, BirdControl me) {
@@ -195,46 +285,6 @@ public class ForceDecisionControl : DecisionControl {
 		return Vector2.ClampMagnitude(force, OBSTACLE_FORCE);
 	}
 
-	private Vector2 reward(GameObject goal, BirdControl me) {
-		bool hasLeader = false;
-		foreach (BirdControl b in nearbyBirds[me.Number]) {
-			hasLeader = hasLeader || inView(b, me);
-		}
-
-		float rewardChance = Mathf.Min(MIN_REWARD_CHANCE + numPathFrames[me.Number]*STEP_REWARD_CHANCE,MAX_REWARD_CHANCE);
-		if (hasLeader && Random.value>rewardChance) {
-			numPathFrames[me.Number]=0;
-			return rewardSimple(goal,me);
-		}
-		numPathFrames[me.Number]++;
-		Vector2[] path = pf.CalculatePath(goal.transform.position, me);
-		return rewardPathfind(path, me);
-	}
-
-	private Vector2 rewardPathfind(Vector2[] path, BirdControl me) {
-		if (path.Length == 0) {
-			return Vector2.zero;
-		}
-		Vector2 delta = (path [1] - (Vector2)me.transform.position);
-		float dist = delta.magnitude;
-		print(dist);
-		if (dist > REWARD_DISTANCE) {
-			return Vector2.zero;
-		}
-		// As there is only one reward, force does not have an asymptote, and indvidual force will clamp for us
-		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
-	}
-
-	private Vector2 rewardSimple(GameObject goal, BirdControl me) {
-		Vector2 delta = (Vector2)(goal.transform.position - me.transform.position);
-		float dist = delta.magnitude;
-		if (dist > REWARD_DISTANCE) {
-			return Vector2.zero;
-		}
-		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
-	}
-
-
 	private Vector2 boundary(FlockControl.UnityState us, BirdControl me) {
 		float xForce = 0;
 		float yForce = 0;
@@ -267,6 +317,30 @@ public class ForceDecisionControl : DecisionControl {
 		force = Vector2.ClampMagnitude(force, BOUNDARY_FORCE);
 		return force;
 	}
+
+	private Vector2 rewardPathfind(Vector2[] path, BirdControl me) {
+		if (path.Length == 0) {
+			return Vector2.zero;
+		}
+		Vector2 delta = (path [1] - (Vector2)me.transform.position);
+		float dist = delta.magnitude;
+		if (dist > REWARD_DISTANCE) {
+			return Vector2.zero;
+		}
+		// As there is only one reward, force does not have an asymptote, and indvidual force will clamp for us
+		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
+	}
+
+	private Vector2 rewardSimple(GameObject goal, BirdControl me) {
+		Vector2 delta = (Vector2)(goal.transform.position - me.transform.position);
+		float dist = delta.magnitude;
+		if (dist > REWARD_DISTANCE) {
+			return Vector2.zero;
+		}
+		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
+	}
+
+
 
 
 	private Vector2 minDelta(BirdControl b1, BirdControl b2) {
