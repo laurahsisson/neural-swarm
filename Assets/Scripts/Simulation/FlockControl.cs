@@ -270,7 +270,7 @@ public class FlockControl : MonoBehaviour {
 			for (int i = 0; i < forces.Length; i++) {
 				birdControls [i].SetForce(forces [i]);
 			}
-			print(Time.realtimeSinceStartup-updateStart);
+//			print(Time.realtimeSinceStartup-updateStart);
 		}
 
 

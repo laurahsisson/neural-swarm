@@ -29,7 +29,9 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float OBSTACLE_ASYMPTOTE = 200;
 
 	// The percentage of birds who should use pathfinding
-	private static readonly float REWARD_PERCENT = .15f;
+	private static readonly float REWARD_PERCENT = .30f;
+	// The probability that we will receive a token regardless of our situation if we received one last frame
+	private static readonly float REWARD_CARRYOVER = .85f;
 
 	private static readonly float REWARD_DISTANCE = 15;
 	private static readonly float REWARD_FORCE = 8f;
@@ -48,6 +50,7 @@ public class ForceDecisionControl : DecisionControl {
 	private int[] numPathFrames;
 
 	private Vector2[] rewardForces;
+	private bool[] gotRewardToken;
 
 
 	private struct BirdTuple {
@@ -63,6 +66,7 @@ public class ForceDecisionControl : DecisionControl {
 	public override void StartGeneration(FlockControl.UnityState us) {
 		pf.InitializeGrid(us);
 		numPathFrames = new int[us.birds.Length];
+		gotRewardToken = new bool[us.birds.Length];
 	}
 
 	public override void EndGeneration(StatsControl.GenerationStats gs) {
@@ -141,19 +145,33 @@ public class ForceDecisionControl : DecisionControl {
 	private void generateRewards(FlockControl.UnityState us) {
 		int pathfindTokens = (int)(us.birds.Length*REWARD_PERCENT);
 		rewardForces = new Vector2[us.birds.Length];
+		bool[] nextGotToken = new bool[us.birds.Length];
 		/* Let n be the total number of birds. Our goal in this function to get REWARD_PERCENT of total birds using pathfinding. 
 		 * We generate a number of tokes equal to REWARD_PERCENT * n.
-		 * We prioritize the birds with no leaders, but want to make sure that as the number of active birds falls, we still give away all of our tokens
-		 * to birds that are active. If we have more tokens than active birds, every bird should use pathfinding.
+		 * We prioritize the birds that previously received tokens, then birds with no leaders, but want to make sure that as the number of active birds falls,
+		 * we still give away all of our tokens to birds that are active. If we have more tokens than active birds, every bird should use pathfinding.
 		 */
 
-		// First we prioritize birds with no leaders
+		// First we give priority to birds that are already holding tokens
+		for (int bird = 0; bird < us.birds.Length; bird++) {
+			BirdControl me = us.birds[bird];
+			if (!gotRewardToken[bird] || !me.Moving) {
+				continue;
+			}
+			if (Random.value>REWARD_CARRYOVER) {
+				continue;
+			}
+			// This bird had a token and carries it over in this frame
+			pathfindTokens = giveToken(us,bird,pathfindTokens,nextGotToken);
+		}
+
+		// Then we prioritize birds with no leaders
 		int[] birdIndex = range(us.birds.Length);
 		shuffle(birdIndex);
-
 		for (int i = 0; i < birdIndex.Length && pathfindTokens>0; i++) {
-			BirdControl me = us.birds[birdIndex[i]];
-			if (!me.Moving) {
+			int bird = birdIndex[i];
+			BirdControl me = us.birds[bird];
+			if (!me.Moving||nextGotToken[bird]) {
 				continue;
 			}
 
@@ -166,44 +184,53 @@ public class ForceDecisionControl : DecisionControl {
 				continue;
 			}
 			// This bird has no leader so use a token
-			Vector2[] path = pf.CalculatePath(us.goal.transform.position, me);
-			rewardForces[i] = rewardPathfind(path, me);
-			pathfindTokens-=1;
+			pathfindTokens = giveToken(us,bird,pathfindTokens,nextGotToken);
 		}
 
-		// Now we give out the rest of the tokens
+		// Now we give out the rest of the tokens randomly
 		birdIndex = range(us.birds.Length);
 		shuffle(birdIndex);
-
 		for (int i = 0; i < birdIndex.Length && pathfindTokens>0; i++) {
-			BirdControl me = us.birds[birdIndex[i]];
-			if (!me.Moving) {
+			int bird = birdIndex[i];
+			BirdControl me = us.birds[bird];
+			if (!me.Moving||nextGotToken[bird]) {
 				continue;
 			}
-			if (rewardForces[i]!=Vector2.zero) {
-				// This bird already received a token
-				continue;
-			}
-			// This bird has received a token
-			Vector2[] path = pf.CalculatePath(us.goal.transform.position, me);
-			rewardForces[i] = rewardPathfind(path, me);
-			pathfindTokens-=1;
+			// This bird has received a token through random chance
+			pathfindTokens = giveToken(us,bird,pathfindTokens,nextGotToken);
 		}
 
 		// The remainder of the birds do not receive tokens and so just do simple pathfinding towards the goal
-		for (int i = 0; i < us.birds.Length; i++) {
-			BirdControl me = us.birds[i];
+		for (int bird = 0; bird < us.birds.Length; bird++) {
+			BirdControl me = us.birds[bird];
 			if (!me.Moving) {
 				continue;
 			}
-			if (rewardForces[i]!=Vector2.zero) {
+			if (rewardForces[bird]!=Vector2.zero) {
 				// This bird already received a token
 				continue;
 			}
 
-			rewardForces[i] = rewardSimple(us.goal,me);
+			rewardForces[bird] = rewardSimple(us.goal,me);
 		}
 
+		int activeBirds = 0;
+		foreach (BirdControl b in us.birds) {
+			if (b.Moving) {
+				activeBirds++;
+			}
+		}
+		print(pathfindTokens + "," + (int)(us.birds.Length*REWARD_PERCENT) + "," + activeBirds);
+
+		gotRewardToken = nextGotToken;
+	}
+
+	private int giveToken(FlockControl.UnityState us, int bird, int tokens, bool[] nextGotToken) {
+		nextGotToken[bird]=true;
+		BirdControl me = us.birds[bird];
+		Vector2[] path = pf.CalculatePath(us.goal.transform.position, me);
+		rewardForces[bird] = rewardPathfind(path, me);
+		return tokens - 1;
 	}
 
 	private int[] range(int len) {
