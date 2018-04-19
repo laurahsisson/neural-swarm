@@ -15,7 +15,7 @@ public class PathfindControl : MonoBehaviour {
 	// The max number of colliders we will check against
 	private readonly int NUM_COLLIDERS = 10;
 	// The distances at which we will check if we hit more than 1 collider
-	private readonly float[] CHECK_DISTANCES = new float[]{ 2, 3, 4 };
+	private readonly float[] CHECK_DISTANCES = new float[]{ 1, 3, 4 };
 
 
 	private bool[,] grid;
@@ -160,14 +160,13 @@ public class PathfindControl : MonoBehaviour {
 
 		if (!found) {
 			me.gameObject.GetComponent<Renderer>().material.color = Color.black;
-			Debug.LogError("OK");
+			Debug.Log(string.Join(",", minNode.path));
 			Debug.Log(minD + ": Could not find path to goal!");
 			drawPath(getWorldPath(minNode), Color.green);
 			return new Vector2[0];
 		}
 
 		Vector2[] positions = getWorldPath(final);
-		drawPath(positions, Color.red);
 
 		return positions;
 	}
@@ -189,7 +188,7 @@ public class PathfindControl : MonoBehaviour {
 	}
 
 	private Vector2 nearestValidPos(int x, int y) {
-		if (grid [x, y]) {
+		if (x >= 0 && x < grid.GetLength(0) && y >= 0 && y < grid.GetLength(1) && grid [x, y]) {
 			return new Vector2(x, y);
 		}
 		int dist = 1;

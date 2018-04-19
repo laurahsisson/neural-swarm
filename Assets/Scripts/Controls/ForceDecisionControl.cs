@@ -7,7 +7,7 @@ public class ForceDecisionControl : DecisionControl {
 	public PathfindControl pf;
 
 	private static readonly float FLOCK_DISTANCE = 10;
-	private static readonly float COHESION_FORCE = 1;
+	private static readonly float COHESION_FORCE = 2;
 	// The maximum sum force of cohesion
 	private static readonly float ALIGN_FORCE = 1.5F;
 
@@ -15,32 +15,32 @@ public class ForceDecisionControl : DecisionControl {
 
 	private static readonly float REPULSE_FORCE = 3f;
 
-	private static readonly float REPULSE_CONST = 100;
 	// The constant times each individual birds exertion
 	// The higher const is the more equally weighted near and far objects will be
+	private static readonly float REPULSE_CONST = 100;
 
-	private static readonly float REPULSE_ASYMPTOTE = 200;
 	// The maximum force an individual bird may exert
 	// The higher the asymptote is the more strongly weighted very close objects are (distance of less than 1)
+	private static readonly float REPULSE_ASYMPTOTE = 200;
 
 	private static readonly float OBSTACLE_DISTANCE = 3;
 	private static readonly float OBSTACLE_FORCE = 4f;
 	private static readonly float OBSTACLE_CONST = 100;
 	private static readonly float OBSTACLE_ASYMPTOTE = 200;
 
-	// The total number of tokens given out to birds
-	private static readonly int PATHFIND_TOKENS = 20;
-
-
-	// The probability that we will receive a token regardless of our situation if we received one last frame
+	// The total number of birds that will use pathfinding
+	private static readonly int PATHFIND_TOKENS = 10;
+	// The probability that we will pathfind regardless of their situation, given they did last frame
 	private static readonly float PATHFIND_CARRYOVER = .95f;
-	// How many steps away we will calculate
+	// How many steps away we will calculate the sum force of
 	private static readonly float PATHFIND_STEPS = 5;
+	private static readonly float PATHFIND_FORCE = 8f;
+	private static readonly float PATHFIND_CONST = 100;
+	private static readonly float PATHFIND_ASYMPTOTE = 200;
 
-	private static readonly float REWARD_DISTANCE = 15;
-	private static readonly float REWARD_FORCE = 8f;
-	private static readonly float REWARD_CONST = 100;
-	private static readonly float REWARD_ASYMPTOTE = 200;
+	private static readonly float GOAL_DISTANCE = 15;
+	private static readonly float GOAL_FORCE = 8f;
+	private static readonly float GOAL_CONST = 100;
 
 	private static readonly float BOUNDARY_DISTANCE = 15f;
 	private static readonly float BOUNDARY_FORCE = 6;
@@ -356,23 +356,20 @@ public class ForceDecisionControl : DecisionControl {
 		for (int i = 0; i < PATHFIND_STEPS && i < path.Length; i++) {
 
 			Vector2 delta = (path[i] - (Vector2) me.transform.position);
-			Debug.DrawLine(me.transform.position,path[i]);
-			force += individualForce(delta.normalized, i, REWARD_CONST, REWARD_ASYMPTOTE);
+			force += individualForce(delta.normalized, i, PATHFIND_CONST, PATHFIND_ASYMPTOTE);
 		}
-		return Vector2.ClampMagnitude(force, REWARD_FORCE);
+		return Vector2.ClampMagnitude(force, PATHFIND_FORCE);
 	}
 
 	private Vector2 rewardSimple(Vector2 goalPos, BirdControl me) {
 		Vector2 delta = goalPos - (Vector2)me.transform.position;
 		float dist = delta.magnitude;
-		if (dist > REWARD_DISTANCE) {
+		if (dist > GOAL_DISTANCE) {
 			return Vector2.zero;
 		}
-		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
+		// Because we have only a single force, we still follow the same routine as above, but our asymptote is our total force
+		return individualForce(delta,GOAL_CONST,GOAL_FORCE);
 	}
-
-
-
 
 	private Vector2 minDelta(BirdControl b1, BirdControl b2) {
 		ColliderDistance2D cd = b1.GetComponent<Collider2D>().Distance(b2.GetComponent<Collider2D>());
