@@ -4,9 +4,9 @@ using UnityEngine;
 
 
 public class PathfindControl : MonoBehaviour {
-	private readonly float GRID_STEP = 1f;
+	private readonly float GRID_STEP = 2f;
+	private readonly float CUTOFF_DIST = 10f; // Overestimation of sqrt(2). If we are within one GRID_STEP square of the goal we are good to stop
 	private readonly int NUM_COLLIDERS = 10; // The max number of colliders we will check against
-	private readonly float CUTOFF_DIST = 1.5f; // Overestimation of sqrt(2). If we are within one unit square of the goal we are good to stop
 
 	private bool[,] grid;
 
@@ -33,8 +33,10 @@ public class PathfindControl : MonoBehaviour {
 	}
 
 	public void InitializeGrid(FlockControl.UnityState us) {
+		float margin = 2*us.maxSize;
+
 		CircleCollider2D cd = GetComponent<CircleCollider2D>();
-		gameObject.transform.localScale=new Vector3(us.maxSize*2,us.maxSize*2);
+		gameObject.transform.localScale=new Vector3(margin,margin);
 		ContactFilter2D cf = new ContactFilter2D();
 		cf.useTriggers=true;
 		cf.layerMask = LayerMask.GetMask("Wall");
@@ -42,8 +44,8 @@ public class PathfindControl : MonoBehaviour {
 		Collider2D[] others = new Collider2D[NUM_COLLIDERS];
 		grid = new bool[(int)(us.roomWidth/GRID_STEP),(int)(us.roomHeight/GRID_STEP)];
 			
-		for (float x = 0; x < us.roomWidth; x+=GRID_STEP) {
-			for (float y = 0; y < us.roomHeight; y+=GRID_STEP) {
+		for (float x = margin; x < us.roomWidth-margin; x+=GRID_STEP) {
+			for (float y = margin; y < us.roomHeight-margin; y+=GRID_STEP) {
 				transform.position = new Vector2(x,y);
 				int hit = cd.OverlapCollider(cf,others);
 				int gx = (int)(x/GRID_STEP);
@@ -75,14 +77,15 @@ public class PathfindControl : MonoBehaviour {
 					cur = n;
 				}
 			}
-			if (d > Mathf.Sqrt(grid.GetLength(0)*grid.GetLength(0)+grid.GetLength(1)*grid.GetLength(1))){
+			if (d/GRID_STEP > grid.GetLength(0)*GRID_STEP+grid.GetLength(1)*GRID_STEP){
 				// If we traverse more than the entire room in length, it is a good indicator we will be unable to find a path
-				print("Maxed out on distance");
+				print(string.Join(",", cur.path));
 				break;
 			}
 
 			open.Remove(cur);
-			if (Vector2.Distance(cur.gridPos,goalGridPos)<CUTOFF_DIST) {
+			//1.5 here is overestimation of sqrt(2)
+			if (Vector2.Distance(cur.gridPos,goalGridPos)<CUTOFF_DIST*GRID_STEP) { 
 				cur.path.Add(goalGridPos);
 				found = true;
 				final = cur;

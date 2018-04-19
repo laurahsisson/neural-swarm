@@ -28,10 +28,10 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float OBSTACLE_CONST = 100;
 	private static readonly float OBSTACLE_ASYMPTOTE = 200;
 
-	// The percentage of birds who should use pathfinding
-	private static readonly float REWARD_PERCENT = .30f;
+	// The total number of tokens given out to birds
+	private static readonly float REWARD_TOKENS = 20;
 	// The probability that we will receive a token regardless of our situation if we received one last frame
-	private static readonly float REWARD_CARRYOVER = .85f;
+	private static readonly float REWARD_CARRYOVER = .95f;
 
 	private static readonly float REWARD_DISTANCE = 15;
 	private static readonly float REWARD_FORCE = 8f;
@@ -129,7 +129,6 @@ public class ForceDecisionControl : DecisionControl {
 
 		Vector2 vel = me.Velocity.normalized;
 		Vector2 aim = force.normalized;
-		Debug.DrawRay(me.transform.position,aim*10,Color.green);
 
 		Vector2 ave = ((vel + aim) / 2).normalized;
 		Vector2 adjustment = Vector2.zero;
@@ -143,7 +142,7 @@ public class ForceDecisionControl : DecisionControl {
 	}
 
 	private void generateRewards(FlockControl.UnityState us) {
-		int pathfindTokens = (int)(us.birds.Length*REWARD_PERCENT);
+		int pathfindTokens = REWARD_TOKENS;
 		rewardForces = new Vector2[us.birds.Length];
 		bool[] nextGotToken = new bool[us.birds.Length];
 		/* Let n be the total number of birds. Our goal in this function to get REWARD_PERCENT of total birds using pathfinding. 
@@ -206,21 +205,20 @@ public class ForceDecisionControl : DecisionControl {
 			if (!me.Moving) {
 				continue;
 			}
-			if (rewardForces[bird]!=Vector2.zero) {
+			if (nextGotToken[bird]) {
+				if (rewardForces[bird]==Vector2.zero) {
+					me.gameObject.GetComponent<Renderer>().material.color=Color.green;
+				} else {
+					me.gameObject.GetComponent<Renderer>().material.color=Color.red;
+				}
 				// This bird already received a token
 				continue;
 			}
+			me.gameObject.GetComponent<Renderer>().material.color=Color.blue;
+
 
 			rewardForces[bird] = rewardSimple(us.goal,me);
 		}
-
-		int activeBirds = 0;
-		foreach (BirdControl b in us.birds) {
-			if (b.Moving) {
-				activeBirds++;
-			}
-		}
-		print(pathfindTokens + "," + (int)(us.birds.Length*REWARD_PERCENT) + "," + activeBirds);
 
 		gotRewardToken = nextGotToken;
 	}
@@ -349,13 +347,16 @@ public class ForceDecisionControl : DecisionControl {
 		if (path.Length == 0) {
 			return Vector2.zero;
 		}
-		Vector2 delta = (path [1] - (Vector2)me.transform.position);
-		float dist = delta.magnitude;
-		if (dist > REWARD_DISTANCE) {
-			return Vector2.zero;
+
+		Vector2 force = Vector2.zero;
+		for (int i = 1; i < path.Length; i++) {
+			if (Vector2.Distance(me.transform.position,path[i])>REWARD_DISTANCE) {
+				break;
+			}
+			Vector2 delta = (path [i] - path[i-1]);
+			force += individualForce(delta, REWARD_CONST, REWARD_ASYMPTOTE);
 		}
-		// As there is only one reward, force does not have an asymptote, and indvidual force will clamp for us
-		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
+		return Vector2.ClampMagnitude(force, REWARD_FORCE);
 	}
 
 	private Vector2 rewardSimple(GameObject goal, BirdControl me) {

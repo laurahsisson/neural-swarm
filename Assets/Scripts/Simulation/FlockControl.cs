@@ -20,7 +20,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 60;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 60;
+	private readonly int NUM_BIRDS = 1;//60;
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -29,7 +29,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MAX_SPEED = 9f;
 
 	private GameObject[] walls;
-	private readonly int NUM_RANDOM_WALLS = 10;
+	private readonly int NUM_RANDOM_WALLS = 0;//10;
 	private readonly float WALL_MAX_WIDTH = 10f;
 	private readonly float WALL_MIN_WIDTH = 2f;
 	// Walls are constrained to have fixed area, so width = area/height
@@ -130,7 +130,7 @@ public class FlockControl : MonoBehaviour {
 			float speed = Random.Range(MIN_SPEED, MAX_SPEED);
 			bird.Setup(size, speed, i);
 			bird.SetForce(new Vector2(Random.value-.5f,Random.value-.5f).normalized*bird.Speed);
-			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
+//			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
 		}
 
 		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
@@ -270,7 +270,7 @@ public class FlockControl : MonoBehaviour {
 			for (int i = 0; i < forces.Length; i++) {
 				birdControls [i].SetForce(forces [i]);
 			}
-//			print(Time.realtimeSinceStartup-updateStart);
+			print(Time.realtimeSinceStartup-updateStart);
 		}
 
 
