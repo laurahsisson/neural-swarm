@@ -20,7 +20,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 60;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 1; // Usually 50
+	private readonly int NUM_BIRDS = 60;
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -29,7 +29,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float MAX_SPEED = 9f;
 
 	private GameObject[] walls;
-	private readonly int NUM_RANDOM_WALLS = 15;
+	private readonly int NUM_RANDOM_WALLS = 10;
 	private readonly float WALL_MAX_WIDTH = 10f;
 	private readonly float WALL_MIN_WIDTH = 2f;
 	// Walls are constrained to have fixed area, so width = area/height

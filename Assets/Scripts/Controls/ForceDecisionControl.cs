@@ -7,36 +7,47 @@ public class ForceDecisionControl : DecisionControl {
 	public PathfindControl pf;
 
 	private static readonly float FLOCK_DISTANCE = 10;
-	private static readonly float COHESION_FORCE = 1; // The maximum sum force of cohesion
+	private static readonly float COHESION_FORCE = 1;
+	// The maximum sum force of cohesion
 	private static readonly float ALIGN_FORCE = 1.5F;
 
 	private static readonly float REPULSE_DISTANCE = 3;
 
 	private static readonly float REPULSE_FORCE = 3f;
 
-	private static readonly float REPULSE_CONST = 100; // The constant times each individual birds exertion 
+	private static readonly float REPULSE_CONST = 100;
+	// The constant times each individual birds exertion
 	// The higher const is the more equally weighted near and far objects will be
 
-	private static readonly float REPULSE_ASYMPTOTE = 200; // The maximum force an individual bird may exert
+	private static readonly float REPULSE_ASYMPTOTE = 200;
+	// The maximum force an individual bird may exert
 	// The higher the asymptote is the more strongly weighted very close objects are (distance of less than 1)
 
 	private static readonly float OBSTACLE_DISTANCE = 3;
 	private static readonly float OBSTACLE_FORCE = 4f;
-	private static readonly float OBSTACLE_CONST = 100; 
-	private static readonly float OBSTACLE_ASYMPTOTE = 200; 
+	private static readonly float OBSTACLE_CONST = 100;
+	private static readonly float OBSTACLE_ASYMPTOTE = 200;
+
+	// The percentage of birds that attempt to pathfind to the reward
+	private static readonly float MIN_REWARD_CHANCE = .15f;
+	private static readonly float MAX_REWARD_CHANCE = .85f;
+	private static readonly float STEP_REWARD_CHANCE = .2f;
 
 	private static readonly float REWARD_DISTANCE = 15;
 	private static readonly float REWARD_FORCE = 8f;
-	private static readonly float REWARD_CONST = 100; 
-	private static readonly float REWARD_ASYMPTOTE = 200; 
+	private static readonly float REWARD_CONST = 100;
+	private static readonly float REWARD_ASYMPTOTE = 200;
 
 	private static readonly float BOUNDARY_DISTANCE = 15f;
-	private static readonly float BOUNDARY_FORCE = 6; 
-	private static readonly float BOUNDARY_CONST = 50; 
+	private static readonly float BOUNDARY_FORCE = 6;
+	private static readonly float BOUNDARY_CONST = 50;
 
+	private static readonly float VIEW_ANGLE = 90f;
+	// The angle within which we check to see if anyone is leading
 
 	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
 	private List<BirdControl>[] nearbyBirds;
+	private int[] numPathFrames;
 
 
 	private struct BirdTuple {
@@ -51,6 +62,7 @@ public class ForceDecisionControl : DecisionControl {
 
 	public override void StartGeneration(FlockControl.UnityState us) {
 		pf.InitializeGrid(us);
+		numPathFrames = new int[us.birds.Length];
 	}
 
 	public override void EndGeneration(StatsControl.GenerationStats gs) {
@@ -60,10 +72,10 @@ public class ForceDecisionControl : DecisionControl {
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
 		nearbyBirds = new List<BirdControl>[us.birds.Length];
 		for (int i = 0; i < us.birds.Length; i++) {
-			nearbyBirds[i] = new List<BirdControl>();
+			nearbyBirds [i] = new List<BirdControl>();
 		}
 
-		float maxRange = Mathf.Max(REPULSE_DISTANCE,FLOCK_DISTANCE);
+		float maxRange = Mathf.Max(REPULSE_DISTANCE, FLOCK_DISTANCE);
 		for (int i = 0; i < us.birds.Length; i++) {
 			BirdControl b1 = us.birds [i];
 			if (!b1.Moving) {
@@ -82,8 +94,8 @@ public class ForceDecisionControl : DecisionControl {
 				if (d.magnitude > maxRange) {
 					continue;
 				}
-				nearbyBirds[i].Add(b2);
-				nearbyBirds[j].Add(b1);
+				nearbyBirds [i].Add(b2);
+				nearbyBirds [j].Add(b1);
 			}
 		}
 
@@ -96,26 +108,27 @@ public class ForceDecisionControl : DecisionControl {
 
 	private Vector2 getForce(FlockControl.UnityState us, int birdNumber) {
 		BirdControl me = us.birds [birdNumber];
-//		Vector2 align = aligment(us.birds, me);
-//		Vector2 cohes = cohesion(us.birds, me);
-//		Vector2 repul = repulsion(us.birds, me);
+		if (!me.Moving) {
+			return Vector2.zero;
+		}
+
+		Vector2 align = aligment(us.birds, me);
+		Vector2 cohes = cohesion(us.birds, me);
+		Vector2 repul = repulsion(us.birds, me);
 		Vector2 obstcl = obstacle(us.walls, me);
-//		Vector2 goal = reward(us.goal, me);
-//		Vector2 bndry = boundary(us, me);
-//		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
-		Vector2[] path = pf.CalculatePath(us,me);
-		Vector2 goal = reward(path,me);
-		Vector2 force = goal + obstcl;
+		Vector2 goal = reward(us.goal, me);
+		Vector2 bndry = boundary(us, me);
+		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
 		// We want to steer our current velocity towards our aim velocity, so take the average of the two and reflect it over the goal
 		// That way we aim in a way that slows us down only in the desired dimension, and speeds us up in the correct dimension.
 
 		Vector2 vel = me.Velocity.normalized;
 		Vector2 aim = force.normalized;
-		Vector2 ave = ((vel+aim)/2).normalized;
+		Vector2 ave = ((vel + aim) / 2).normalized;
 		Vector2 adjustment = Vector2.zero;
 		// If our aim velocity is close to orthogonal to our current velocity, just steer using our current velocity
-		if (Vector2.Dot(vel,aim) > -.5f && vel != Vector2.zero) {
-			adjustment = Vector2.Reflect(-1*ave,-1*aim).normalized;
+		if (Vector2.Dot(vel, aim) > -.5f && vel != Vector2.zero) {
+			adjustment = Vector2.Reflect(-1 * ave, -1 * aim).normalized;
 		} else {
 			adjustment = aim;
 		}
@@ -141,7 +154,7 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 force = (averagePosition - (Vector2)me.transform.position);
 		return Vector2.ClampMagnitude(force, COHESION_FORCE);
 	}
-		
+
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
@@ -163,7 +176,7 @@ public class ForceDecisionControl : DecisionControl {
 			if (delta.magnitude > REPULSE_DISTANCE) {
 				continue;
 			}
-			force += individualForce(delta,REPULSE_CONST,REPULSE_ASYMPTOTE);
+			force += individualForce(delta, REPULSE_CONST, REPULSE_ASYMPTOTE);
 		}
 		return Vector2.ClampMagnitude(force, REPULSE_FORCE);
 	}
@@ -177,37 +190,50 @@ public class ForceDecisionControl : DecisionControl {
 				continue;
 			}
 			Vector2 delta = cd.pointA - cd.pointB;
-			force += individualForce(delta,OBSTACLE_CONST,OBSTACLE_ASYMPTOTE);
+			force += individualForce(delta, OBSTACLE_CONST, OBSTACLE_ASYMPTOTE);
 		}
 		return Vector2.ClampMagnitude(force, OBSTACLE_FORCE);
 	}
 
-	private Vector2 reward(Vector2[] path, BirdControl me) {
+	private Vector2 reward(GameObject goal, BirdControl me) {
+		bool hasLeader = false;
+		foreach (BirdControl b in nearbyBirds[me.Number]) {
+			hasLeader = hasLeader || inView(b, me);
+		}
+
+		float rewardChance = Mathf.Min(MIN_REWARD_CHANCE + numPathFrames[me.Number]*STEP_REWARD_CHANCE,MAX_REWARD_CHANCE);
+		if (hasLeader && Random.value>rewardChance) {
+			numPathFrames[me.Number]=0;
+			return rewardSimple(goal,me);
+		}
+		numPathFrames[me.Number]++;
+		Vector2[] path = pf.CalculatePath(goal.transform.position, me);
+		return rewardPathfind(path, me);
+	}
+
+	private Vector2 rewardPathfind(Vector2[] path, BirdControl me) {
 		if (path.Length == 0) {
 			return Vector2.zero;
 		}
-		Vector2 delta = (path[1] - (Vector2) me.transform.position);
+		Vector2 delta = (path [1] - (Vector2)me.transform.position);
 		float dist = delta.magnitude;
 		print(dist);
-		if (dist>REWARD_DISTANCE) {
+		if (dist > REWARD_DISTANCE) {
 			return Vector2.zero;
 		}
 		// As there is only one reward, force does not have an asymptote, and indvidual force will clamp for us
-		return individualForce(delta,REWARD_CONST,REWARD_FORCE);
+		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
 	}
 
-//	private Vector2 reward(Vector2[] path, BirdControl me) {
-//		Vector2 force = Vector2.zero;
-//		foreach (Vector2 p in path) {
-//			Vector2 delta = (p-(Vector2)me.transform.position);
-//			if (delta.magnitude > REWARD_DISTANCE || delta.magnitude == 0) {
-//				continue;
-//			}
-//			Debug.DrawRay(me.transform.position,delta);
-//			force += individualForce(delta,REWARD_CONST,REWARD_ASYMPTOTE);
-//		}
-//		return Vector2.ClampMagnitude(force, REWARD_FORCE);
-//	}
+	private Vector2 rewardSimple(GameObject goal, BirdControl me) {
+		Vector2 delta = (Vector2)(goal.transform.position - me.transform.position);
+		float dist = delta.magnitude;
+		if (dist > REWARD_DISTANCE) {
+			return Vector2.zero;
+		}
+		return individualForce(delta, REWARD_CONST, REWARD_FORCE);
+	}
+
 
 	private Vector2 boundary(FlockControl.UnityState us, BirdControl me) {
 		float xForce = 0;
@@ -270,17 +296,27 @@ public class ForceDecisionControl : DecisionControl {
 
 	private Vector2 individualForce(Vector2 delta, float constant, float asymptote) {
 		float dist = delta.magnitude;
-		Vector2 norm = delta/dist;
+		Vector2 norm = delta / dist;
 		float force = 0;
 		if (dist == 0) {
 			force = asymptote;
 		} else {
-			force = (dist*dist)*constant;
-			force = Mathf.Min(force,asymptote);
+			force = (dist * dist) * constant;
+			force = Mathf.Min(force, asymptote);
 		}
-		return norm*force;
+		return norm * force;
 	}
 
+	private bool inView(BirdControl other, BirdControl me) {	
+		float dir = Mathf.Rad2Deg * Mathf.Atan2(me.Velocity.y, me.Velocity.x);
+		Vector3 delta = other.transform.position - me.transform.position;
+		float angleTo = Mathf.Rad2Deg * Mathf.Atan2(delta.y, delta.x);
+		return withinAngle(dir, angleTo, VIEW_ANGLE);
+	}
+
+	static bool withinAngle(float a, float b, float dist) {
+		return (360 - Mathf.Abs(a - b) % 360 < dist || Mathf.Abs(a - b) % 360 < dist);
+	}
 
 	private Vector2 getDelta(BirdTuple bt, int number) {
 		Vector2 delta = btDistances [bt];

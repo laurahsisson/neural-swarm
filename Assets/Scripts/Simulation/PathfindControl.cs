@@ -48,22 +48,14 @@ public class PathfindControl : MonoBehaviour {
 				int hit = cd.OverlapCollider(cf,others);
 				int gx = (int)(x/GRID_STEP);
 				int gy = (int)(y/GRID_STEP);
-				if (gx == grid.GetLength(0) || gy == grid.GetLength(1)) {
-					continue;
-				}
-				try {
-					grid[gx,gy] = hit==0;
-				} catch (System.Exception ex) {
-					Debug.Log(gx + "<" + gy);
-					Debug.Log(grid.GetLength(0) + "<" + grid.GetLength(1));
-				}
+				grid[gx,gy] = hit==0;
 			}
 		}
 	}
 
-	public Vector2[] CalculatePath(FlockControl.UnityState us, BirdControl me) {
+	public Vector2[] CalculatePath(Vector2 goalPos, BirdControl me) {
 		Vector2 myGridPos = me.transform.position*GRID_STEP;
-		Vector2 goalGridPos = us.goal.transform.position*GRID_STEP;
+		Vector2 goalGridPos = goalPos*GRID_STEP;
 		Node start = new Node(myGridPos,0,Vector2.Distance(myGridPos,goalGridPos));
 
 		HashSet<Node> open = new HashSet<Node>();
@@ -83,7 +75,7 @@ public class PathfindControl : MonoBehaviour {
 					cur = n;
 				}
 			}
-			if (d > Mathf.Sqrt(us.roomWidth*us.roomWidth+us.roomHeight+us.roomHeight)){
+			if (d > Mathf.Sqrt(grid.GetLength(0)*grid.GetLength(0)+grid.GetLength(1)*grid.GetLength(1))){
 				// If we traverse more than the entire room in length, it is a good indicator we will be unable to find a path
 				print("Maxed out on distance");
 				break;
