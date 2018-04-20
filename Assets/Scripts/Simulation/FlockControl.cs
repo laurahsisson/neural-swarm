@@ -16,7 +16,7 @@ public class FlockControl : MonoBehaviour {
 	private StatsControl statsControl;
 	private UIControl uiControl;
 
-	private readonly float ROOM_WIDTH = 75;
+	private readonly float ROOM_WIDTH = 80;
 	private readonly float ROOM_HEIGHT = 60;
 
 	private BirdControl[] birdControls;
@@ -44,7 +44,7 @@ public class FlockControl : MonoBehaviour {
 	private bool hasReceivedStart = false;
 	private int generation = 0;
 	private int reachedGoal;
-	private readonly float MAX_TIME = 15f;
+	private readonly float MAX_TIME = 25f;
 
 
 

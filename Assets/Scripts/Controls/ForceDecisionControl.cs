@@ -7,13 +7,13 @@ public class ForceDecisionControl : DecisionControl {
 	public PathfindControl pf;
 
 	private static readonly float FLOCK_DISTANCE = 10;
-	private static readonly float COHESION_FORCE = 2;
+	private static readonly float COHESION_FORCE = 1;
 	// The maximum sum force of cohesion
 	private static readonly float ALIGN_FORCE = 1.5F;
 
 	private static readonly float REPULSE_DISTANCE = 3;
 
-	private static readonly float REPULSE_FORCE = 3f;
+	private static readonly float REPULSE_FORCE = 5f;
 
 	// The constant times each individual birds exertion
 	// The higher const is the more equally weighted near and far objects will be
@@ -29,7 +29,7 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float OBSTACLE_ASYMPTOTE = 200;
 
 	// The total number of birds that will use pathfinding
-	private static readonly int PATHFIND_TOKENS = 10;
+	private static readonly int PATHFIND_TOKENS = 20;
 	// The probability that we will pathfind regardless of their situation, given they did last frame
 	private static readonly float PATHFIND_CARRYOVER = .95f;
 	// How many steps away we will calculate the sum force of
@@ -110,27 +110,43 @@ public class ForceDecisionControl : DecisionControl {
 
 		generateRewards(us);
 
-		Vector2[] forces = new Vector2[us.birds.Length];
-		for (int i = 0; i < forces.Length; i++) {
-			forces [i] = getForce(us, i);
+		Vector2[] sf = new Vector2[us.birds.Length];
+		for (int i = 0; i < sf.Length; i++) {
+			sf [i] = getStaticForce(us, i);
+			Debug.DrawRay(us.birds[i].transform.position,sf[i]);
 		}
-		return forces;
+
+		Vector2[] total = new Vector2[us.birds.Length];
+		for (int i = 0; i < sf.Length; i++) {
+			BirdControl me = us.birds [i];
+			total [i] = sf [i] + repulsion(us.birds, sf, me);
+		}
+
+		Vector2[] forces = new Vector2[us.birds.Length];
+		for (int i = 0; i < sf.Length; i++) {
+			BirdControl me = us.birds [i];
+			forces [i] = steer(me, total [i]);
+		}
+		return sf;
 	}
 
-	private Vector2 getForce(FlockControl.UnityState us, int birdNumber) {
+	private Vector2 getStaticForce(FlockControl.UnityState us, int birdNumber) {
 		BirdControl me = us.birds [birdNumber];
 
 		Vector2 align = aligment(us.birds, me);
 		Vector2 cohes = cohesion(us.birds, me);
-		Vector2 repul = repulsion(us.birds, me);
 		Vector2 obstcl = obstacle(us.walls, me);
-		Vector2 goal = rewardForces [me.Number];//reward(us.goal, me);
+		Vector2 goal = rewardForces [me.Number];
 		Vector2 bndry = boundary(us, me);
-		Vector2 force = align + cohes + repul + obstcl + goal + bndry;
+		Vector2 force = align + cohes + obstcl + goal + bndry;
+		return force;
+	}
 
-		// We want to steer our current velocity towards our aim velocity, so take the average of the two and reflect it over the goal
-		// That way we aim in a way that slows us down only in the desired dimension, and speeds us up in the correct dimension.
-
+	private Vector2 steer(BirdControl me, Vector2 force) {
+		/* We want to steer our current velocity towards our aim velocity (the force on our bird), so take the average of the two
+		 * and reflect it over the goal/ That way we aim in a way that slows us down only in the desired dimension, and speeds 
+		 * us up in the correct dimension.
+		 */
 		Vector2 vel = me.Velocity.normalized;
 		Vector2 aim = force.normalized;
 
@@ -149,9 +165,9 @@ public class ForceDecisionControl : DecisionControl {
 		int pathfindTokens = PATHFIND_TOKENS;
 		rewardForces = new Vector2[us.birds.Length];
 		bool[] nextGotToken = new bool[us.birds.Length];
-		/* Let n be the total number of birds. Our goal in this function to get REWARD_PERCENT of total birds using pathfinding. 
-		 * We generate a number of tokes equal to REWARD_PERCENT * n.
-		 * We prioritize the birds that previously received tokens, then birds with no leaders, but want to make sure that as the number of active birds falls,
+
+		/* In this function, we give away a number of tokens equal to PATHFIND_TOKENS to birds so that they use the more computational expensive pathfinding.
+		 * We prioritize the birds that previously received tokens, then birds with no leaders, but we want to make sure that as the number of active birds falls,
 		 * we still give away all of our tokens to birds that are active. If we have more tokens than active birds, every bird should use pathfinding.
 		 */
 
@@ -287,7 +303,7 @@ public class ForceDecisionControl : DecisionControl {
 		return Vector2.ClampMagnitude(force, ALIGN_FORCE);
 	}
 
-	private Vector2 repulsion(BirdControl[] birds, BirdControl me) {
+	private Vector2 repulsion(BirdControl[] birds, Vector2[] staticForces, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
@@ -295,7 +311,8 @@ public class ForceDecisionControl : DecisionControl {
 			if (delta.magnitude > REPULSE_DISTANCE) {
 				continue;
 			}
-			force += individualForce(delta, REPULSE_CONST, REPULSE_ASYMPTOTE);
+			float adaptiveForce = Mathf.Max(1, staticForces [b.Number].sqrMagnitude);
+			force += individualForce(delta, REPULSE_CONST * adaptiveForce, REPULSE_ASYMPTOTE);
 		}
 		return Vector2.ClampMagnitude(force, REPULSE_FORCE);
 	}
@@ -355,7 +372,7 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 force = Vector2.zero;
 		for (int i = 0; i < PATHFIND_STEPS && i < path.Length; i++) {
 
-			Vector2 delta = (path[i] - (Vector2) me.transform.position);
+			Vector2 delta = (path [i] - (Vector2)me.transform.position);
 			force += individualForce(delta.normalized, i, PATHFIND_CONST, PATHFIND_ASYMPTOTE);
 		}
 		return Vector2.ClampMagnitude(force, PATHFIND_FORCE);
@@ -368,7 +385,7 @@ public class ForceDecisionControl : DecisionControl {
 			return Vector2.zero;
 		}
 		// Because we have only a single force, we still follow the same routine as above, but our asymptote is our total force
-		return individualForce(delta,GOAL_CONST,GOAL_FORCE);
+		return individualForce(delta, GOAL_CONST, GOAL_FORCE);
 	}
 
 	private Vector2 minDelta(BirdControl b1, BirdControl b2) {
@@ -398,8 +415,13 @@ public class ForceDecisionControl : DecisionControl {
 
 	private Vector2 individualForce(Vector2 delta, float constant, float asymptote) {
 		float dist = delta.magnitude;
-		Vector2 norm = delta / dist;
-		return individualForce(norm,dist,constant,asymptote);
+		Vector2 norm;
+		if (dist == 0) {
+			norm = Vector2.zero;
+		} else {
+			norm = delta / dist;
+		}
+		return individualForce(norm, dist, constant, asymptote);
 	}
 
 	private Vector2 individualForce(Vector2 norm, float dist, float constant, float asymptote) {
