@@ -35,30 +35,99 @@ public class ForceDNA {
 	static readonly float CARRY_MAX = 1;
 	static readonly float CARRY_MUT = .1f;
 
-	public readonly FlockGenome Flock;
-	public readonly ComplexGenome Repulse;
-	public readonly ComplexGenome Obstacle;
-	public readonly ComplexGenome Boundary;
-	public readonly ComplexGenome Reward;
-	public readonly PathfindGenome Pathfind;
+	static readonly float COMPLETED_MULT = 1000;
+	static readonly float BIRD_MULT = 2;
+	static readonly float WALL_MULT = 1;
+
+	static readonly int NUM_GENOMES = 15;
+
+	private Genome[] genomes;
+	private float[] scores;
+	private int current = 0;
 
 	public ForceDNA() {
-		Flock = new FlockGenome();
-		Repulse = new ComplexGenome();
-		Obstacle = new ComplexGenome();
-		Boundary = new ComplexGenome();
-		Reward = new ComplexGenome();
-		Pathfind = new PathfindGenome();
+		genomes = new Genome[NUM_GENOMES];
+		for (int i = 0; i < NUM_GENOMES; i++) {
+			genomes [i] = new Genome();
+		}
+		current = -1;
+	}
+
+	public Genome Next() {
+		current += 1;
+		if (current == genomes.Length) {
+			current = -1;
+			evolve();
+		}
+		return genomes [current];
+	}
+
+	public void SetScore(StatsControl.GenerationStats gs) {
+		float s = gs.completed * COMPLETED_MULT - (gs.birdCollisions * BIRD_MULT + gs.wallCollisions * WALL_MULT);
+		scores [current] = Mathf.Max(s, 1);
+	}
+
+	private void evolve() {
+		float sum = 0;
+		for (int i = 0; i < scores.Length; i++) {
+			sum += scores [i];
+		}
+
+		Genome[] newGenomes = new Genome[NUM_GENOMES];
+
+		for (int i = 0; i < NUM_GENOMES; i++) {
+			Genome p1 = selectParent(scores,sum);
+			Genome p2 = selectParent(scores,sum);
+			newGenomes[i] = new Genome(p1,p2);
+		}
+
+	}
+
+	private Genome selectParent(float[] scores, float sum) {
+		float s = Random.Range(0,sum);
+		int parent = -1;
+		while (s > 0) {
+			parent++;
+			s -= scores[parent];
+		}
+		return genomes[parent];
 	}
 
 	public class Genome {
-		public readonly float Distance;
+		public readonly FlockChrom Flock;
+		public readonly ComplexChrom Repulse;
+		public readonly ComplexChrom Obstacle;
+		public readonly ComplexChrom Boundary;
+		public readonly ComplexChrom Reward;
+		public readonly PathfindChrom Pathfind;
 
 		public Genome() {
+			Flock = new FlockChrom();
+			Repulse = new ComplexChrom();
+			Obstacle = new ComplexChrom();
+			Boundary = new ComplexChrom();
+			Reward = new ComplexChrom();
+			Pathfind = new PathfindChrom();
+		}
+
+		public Genome(Genome p1, Genome p2) {
+			Flock = new FlockChrom(Random.value>.5f ? p1.Flock : p2.Flock);
+			Repulse = new ComplexChrom(Random.value>.5f ? p1.Repulse : p2.Repulse);
+			Obstacle = new ComplexChrom(Random.value>.5f ? p1.Obstacle : p2.Obstacle);
+			Boundary = new ComplexChrom(Random.value>.5f ? p1.Boundary : p2.Boundary);
+			Reward = new ComplexChrom(Random.value>.5f ? p1.Reward : p2.Reward);
+			Pathfind = new PathfindChrom(Random.value>.5f ? p1.Pathfind : p2.Pathfind);
+		}
+	}
+
+	public class Chrom {
+		public readonly float Distance;
+
+		public Chrom() {
 			this.Distance = Random.Range(DIST_MIN, DIST_MAX);
 		}
 
-		public Genome(Genome parent) {
+		public Chrom(Chrom parent) {
 			if (Random.value < MUTATION_CHANCE) {
 				this.Distance = parent.Distance + Random.Range(-DIST_MUT, DIST_MUT);
 			}
@@ -66,16 +135,16 @@ public class ForceDNA {
 
 	}
 
-	public class FlockGenome: Genome {
+	public class FlockChrom: Chrom {
 		public readonly float AlignForce;
 		public readonly float CohesForce;
 
-		public FlockGenome() : base() {
+		public FlockChrom() : base() {
 			this.AlignForce = Random.Range(FORCE_MIN, FORCE_MAX);
 			this.CohesForce = Random.Range(FORCE_MIN, FORCE_MAX);
 		}
 
-		public FlockGenome(FlockGenome parent) : base(parent) {
+		public FlockChrom(FlockChrom parent) : base(parent) {
 			if (Random.value < MUTATION_CHANCE) {
 				this.AlignForce = parent.AlignForce + Random.Range(-FORCE_MUT, FORCE_MUT);
 			}
@@ -86,18 +155,18 @@ public class ForceDNA {
 	}
 
 
-	public class ComplexGenome: Genome {
+	public class ComplexChrom: Chrom {
 		public readonly float Force;
 		public readonly float Constant;
 		public readonly float Asymptote;
 
-		public ComplexGenome() : base() {
+		public ComplexChrom() : base() {
 			this.Force = Random.Range(FORCE_MIN, FORCE_MAX);
 			this.Constant = Random.Range(CONSTANT_MIN, CONSTANT_MAX);
 			this.Asymptote = Random.Range(ASYMPTOTE_MIN, ASYMPTOTE_MAX);
 		}
 
-		public ComplexGenome(ComplexGenome parent) : base(parent) {
+		public ComplexChrom(ComplexChrom parent) : base(parent) {
 			if (Random.value < MUTATION_CHANCE) {
 				this.Force = parent.Force + Random.Range(-FORCE_MUT, FORCE_MUT);
 			}
@@ -110,16 +179,16 @@ public class ForceDNA {
 		}
 	}
 
-	public class PathfindGenome: ComplexGenome {
+	public class PathfindChrom: ComplexChrom {
 		public readonly float Steps;
 		public readonly float Carryover;
 
-		public PathfindGenome() : base() {
+		public PathfindChrom() : base() {
 			this.Steps = Random.Range(STEPS_MIN, STEPS_MAX);
 			this.Carryover = Random.Range(CARRY_MIN, CARRY_MAX);
 		}
 
-		public PathfindGenome(PathfindGenome parent) : base(parent) {
+		public PathfindChrom(PathfindChrom parent) : base(parent) {
 			if (Random.value < MUTATION_CHANCE) {
 				this.Steps = parent.Steps + Random.Range(-STEPS_MUT, STEPS_MUT);
 			}

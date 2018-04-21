@@ -11,7 +11,9 @@ public class ForceDecisionControl : DecisionControl {
 	// The angle within which we check to see if anyone is leading
 	private static readonly float VIEW_ANGLE = 45f;
 
-	private ForceDNA currentForce;
+	private static readonly int NUM_SPECIES = 15;
+	private ForceDNA dna;
+	private ForceDNA.Genome current;
 
 	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
 	private List<BirdControl>[] nearbyBirds;
@@ -31,14 +33,19 @@ public class ForceDecisionControl : DecisionControl {
 		}
 	}
 
+	public override void InitializeModel() {
+		dna = new ForceDNA();
+	}
+
 	public override void StartGeneration(FlockControl.UnityState us) {
 		pf.InitializeGrid(us);
-		currentForce = new ForceDNA();
+		current = dna.Next();
 		numPathFrames = new int[us.birds.Length];
 		gotRewardToken = new bool[us.birds.Length];
 	}
 
 	public override void EndGeneration(StatsControl.GenerationStats gs) {
+		dna.SetScore(gs);
 		print(gs.completed + "," + gs.birdCollisions);
 	}
 
@@ -48,7 +55,7 @@ public class ForceDecisionControl : DecisionControl {
 			nearbyBirds [i] = new List<BirdControl>();
 		}
 
-		float maxRange = Mathf.Max(currentForce.Flock.Distance, currentForce.Repulse.Distance);
+		float maxRange = Mathf.Max(current.Flock.Distance, current.Repulse.Distance);
 		for (int i = 0; i < us.birds.Length; i++) {
 			BirdControl b1 = us.birds [i];
 			if (!b1.Moving) {
@@ -141,7 +148,7 @@ public class ForceDecisionControl : DecisionControl {
 			if (!gotRewardToken [bird] || !me.Moving) {
 				continue;
 			}
-			if (Random.value > currentForce.Pathfind.Carryover) {
+			if (Random.value > current.Pathfind.Carryover) {
 				continue;
 			}
 			// This bird had a token and carries it over in this frame
@@ -233,7 +240,7 @@ public class ForceDecisionControl : DecisionControl {
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = getDelta(bt, me.Number);
-			if (delta.magnitude > currentForce.Flock.Distance) {
+			if (delta.magnitude > current.Flock.Distance) {
 				continue;
 			}
 			sumPosition += (Vector2)b.transform.position;
@@ -244,7 +251,7 @@ public class ForceDecisionControl : DecisionControl {
 		}
 		Vector2 averagePosition = sumPosition / count;
 		Vector2 force = (averagePosition - (Vector2)me.transform.position);
-		return Vector2.ClampMagnitude(force, currentForce.Flock.CohesForce);
+		return Vector2.ClampMagnitude(force, current.Flock.CohesForce);
 	}
 
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
@@ -252,12 +259,12 @@ public class ForceDecisionControl : DecisionControl {
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = getDelta(bt, me.Number);
-			if (delta.magnitude > currentForce.Flock.Distance) {
+			if (delta.magnitude > current.Flock.Distance) {
 				continue;
 			}
 			force += b.Velocity.normalized;
 		}
-		return Vector2.ClampMagnitude(force, currentForce.Flock.AlignForce);
+		return Vector2.ClampMagnitude(force, current.Flock.AlignForce);
 	}
 
 	private Vector2 repulsion(BirdControl[] birds, Vector2[] staticForces, BirdControl me) {
@@ -265,13 +272,13 @@ public class ForceDecisionControl : DecisionControl {
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = -1 * getDelta(bt, me.Number); // getDelta points to the other birds, so reverse it
-			if (delta.magnitude > currentForce.Repulse.Distance) {
+			if (delta.magnitude > current.Repulse.Distance) {
 				continue;
 			}
 			float adaptiveForce = Mathf.Max(1, staticForces [b.Number].sqrMagnitude);
-			force += individualForce(delta, currentForce.Repulse.Constant * adaptiveForce, currentForce.Repulse.Asymptote);
+			force += individualForce(delta, current.Repulse.Constant * adaptiveForce, current.Repulse.Asymptote);
 		}
-		return Vector2.ClampMagnitude(force, currentForce.Repulse.Force);
+		return Vector2.ClampMagnitude(force, current.Repulse.Force);
 	}
 
 
@@ -279,45 +286,45 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 force = Vector2.zero;
 		foreach (GameObject wall in walls) {
 			ColliderDistance2D cd = me.GetComponent<Collider2D>().Distance(wall.GetComponent<Collider2D>());
-			if (cd.distance > currentForce.Obstacle.Distance) {
+			if (cd.distance > current.Obstacle.Distance) {
 				continue;
 			}
 			Vector2 delta = cd.pointA - cd.pointB;
-			force += individualForce(delta, currentForce.Obstacle.Constant, currentForce.Obstacle.Asymptote);
+			force += individualForce(delta, current.Obstacle.Constant, current.Obstacle.Asymptote);
 		}
-		return Vector2.ClampMagnitude(force, currentForce.Obstacle.Force);
+		return Vector2.ClampMagnitude(force, current.Obstacle.Force);
 	}
 
 	private Vector2 boundary(FlockControl.UnityState us, BirdControl me) {
 		float xForce = 0;
 		float yForce = 0;
-		if (me.transform.position.x <= currentForce.Boundary.Distance) {
+		if (me.transform.position.x <= current.Boundary.Distance) {
 			float xDist = me.transform.position.x - 0;
-			xForce = currentForce.Boundary.Constant / (xDist * xDist);
-			xForce = Mathf.Clamp(xForce, - currentForce.Boundary.Force, currentForce.Boundary.Force);
+			xForce = current.Boundary.Constant / (xDist * xDist);
+			xForce = Mathf.Clamp(xForce, - current.Boundary.Force, current.Boundary.Force);
 		}
 
-		if (me.transform.position.y <= currentForce.Boundary.Distance) {
+		if (me.transform.position.y <= current.Boundary.Distance) {
 			float yDist = me.transform.position.y - 0;
-			yForce =  currentForce.Boundary.Constant / (yDist * yDist);
-			yForce = Mathf.Clamp(yForce, -currentForce.Boundary.Force, currentForce.Boundary.Force);
+			yForce =  current.Boundary.Constant / (yDist * yDist);
+			yForce = Mathf.Clamp(yForce, -current.Boundary.Force, current.Boundary.Force);
 		}
 
-		if (me.transform.position.x >= us.roomWidth - currentForce.Boundary.Distance) {
+		if (me.transform.position.x >= us.roomWidth - current.Boundary.Distance) {
 			float xDist = me.transform.position.x - us.roomWidth;
 			// We lose the sign of the force by squaring the distance so we need to add it back here
-			xForce = -1 *  currentForce.Boundary.Constant / (xDist * xDist); 
-			xForce = Mathf.Clamp(xForce, -currentForce.Boundary.Force, currentForce.Boundary.Force);
+			xForce = -1 *  current.Boundary.Constant / (xDist * xDist); 
+			xForce = Mathf.Clamp(xForce, -current.Boundary.Force, current.Boundary.Force);
 		}
 
-		if (me.transform.position.y >= us.roomHeight - currentForce.Boundary.Distance) {
+		if (me.transform.position.y >= us.roomHeight - current.Boundary.Distance) {
 			float yDist = me.transform.position.y - us.roomHeight;
-			yForce = -1 *  currentForce.Boundary.Constant / (yDist * yDist);
-			yForce = Mathf.Clamp(yForce, -currentForce.Boundary.Force, currentForce.Boundary.Force);
+			yForce = -1 *  current.Boundary.Constant / (yDist * yDist);
+			yForce = Mathf.Clamp(yForce, -current.Boundary.Force, current.Boundary.Force);
 		}
 
 		Vector2 force = new Vector2(xForce, yForce);
-		force = Vector2.ClampMagnitude(force, currentForce.Boundary.Force);
+		force = Vector2.ClampMagnitude(force, current.Boundary.Force);
 		return force;
 	}
 
@@ -327,22 +334,22 @@ public class ForceDecisionControl : DecisionControl {
 		}
 
 		Vector2 force = Vector2.zero;
-		for (int i = 0; i < currentForce.Pathfind.Steps && i < path.Length; i++) {
+		for (int i = 0; i < current.Pathfind.Steps && i < path.Length; i++) {
 
 			Vector2 delta = (path [i] - (Vector2)me.transform.position);
-			force += individualForce(delta.normalized, i, currentForce.Pathfind.Constant, currentForce.Pathfind.Asymptote);
+			force += individualForce(delta.normalized, i, current.Pathfind.Constant, current.Pathfind.Asymptote);
 		}
-		return Vector2.ClampMagnitude(force, currentForce.Pathfind.Force);
+		return Vector2.ClampMagnitude(force, current.Pathfind.Force);
 	}
 
 	private Vector2 rewardSimple(Vector2 goalPos, BirdControl me) {
 		Vector2 delta = goalPos - (Vector2)me.transform.position;
 		float dist = delta.magnitude;
-		if (dist > currentForce.Reward.Distance) {
+		if (dist > current.Reward.Distance) {
 			return Vector2.zero;
 		}
 		// Because we have only a single force, we still follow the same routine as above, but our asymptote is our total force
-		return individualForce(delta, currentForce.Reward.Constant, currentForce.Reward.Force);
+		return individualForce(delta, current.Reward.Constant, current.Reward.Force);
 	}
 
 	private Vector2 minDelta(BirdControl b1, BirdControl b2) {
