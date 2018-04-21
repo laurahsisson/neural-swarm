@@ -11,7 +11,6 @@ public class ForceDecisionControl : DecisionControl {
 	// The angle within which we check to see if anyone is leading
 	private static readonly float VIEW_ANGLE = 45f;
 
-	private static readonly int NUM_SPECIES = 15;
 	private ForceDNA dna;
 	private ForceDNA.Genome current;
 
@@ -46,7 +45,6 @@ public class ForceDecisionControl : DecisionControl {
 
 	public override void EndGeneration(StatsControl.GenerationStats gs) {
 		dna.SetScore(gs);
-		print(gs.completed + "," + gs.birdCollisions);
 	}
 
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {

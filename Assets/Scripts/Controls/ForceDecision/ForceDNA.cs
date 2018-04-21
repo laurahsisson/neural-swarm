@@ -39,7 +39,7 @@ public class ForceDNA {
 	static readonly float BIRD_MULT = 2;
 	static readonly float WALL_MULT = 1;
 
-	static readonly int NUM_GENOMES = 15;
+	static readonly int NUM_GENOMES = 40;
 
 	private Genome[] genomes;
 	private float[] scores;
@@ -47,6 +47,7 @@ public class ForceDNA {
 
 	public ForceDNA() {
 		genomes = new Genome[NUM_GENOMES];
+		scores = new float[NUM_GENOMES];
 		for (int i = 0; i < NUM_GENOMES; i++) {
 			genomes [i] = new Genome();
 		}
@@ -56,7 +57,7 @@ public class ForceDNA {
 	public Genome Next() {
 		current += 1;
 		if (current == genomes.Length) {
-			current = -1;
+			current = 0;
 			evolve();
 		}
 		return genomes [current];
@@ -72,6 +73,7 @@ public class ForceDNA {
 		for (int i = 0; i < scores.Length; i++) {
 			sum += scores [i];
 		}
+		Debug.Log(sum/scores.Length);
 
 		Genome[] newGenomes = new Genome[NUM_GENOMES];
 

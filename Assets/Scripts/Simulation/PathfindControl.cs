@@ -81,21 +81,6 @@ public class PathfindControl : MonoBehaviour {
 				grid [gx, gy] = foundSpace;
 			}
 		}
-
-
-
-		for (int gx = 0; gx < grid.GetLength(0); gx++) {
-			for (int gy = 0; gy < grid.GetLength(1); gy++) {
-				int x = (int)(gx / GRID_STEP);
-				int y = (int)(gy / GRID_STEP);
-				Color c = Color.red;
-				if (gridAt(gx,gy)) {
-					c = Color.green;
-				}
-				Debug.DrawRay(new Vector3(x, y), new Vector3(Random.value - .5f, Random.value - .5f), c, 15f);
-			}
-		}
-
 	}
 
 	public Vector2[] CalculatePath(Vector2 goalPos, BirdControl me) {
@@ -129,7 +114,6 @@ public class PathfindControl : MonoBehaviour {
 
 			if (d > 2 * (grid.GetLength(0) + grid.GetLength(1))) {
 				// If we traverse more than the entire perimeter of the room in length, it is a good indicator we will be unable to find a path
-				Debug.Log("Traversed too long!");
 				break;
 			}
 
@@ -159,8 +143,6 @@ public class PathfindControl : MonoBehaviour {
 
 		if (!found) {
 			me.gameObject.GetComponent<Renderer>().material.color = Color.black;
-			Debug.Log(string.Join(",", minNode.path));
-			Debug.Log(minD + ": Could not find path to goal!");
 			drawPath(getWorldPath(minNode), Color.green);
 			return new Vector2[0];
 		}
@@ -215,7 +197,6 @@ public class PathfindControl : MonoBehaviour {
 			dist++;
 		}
 		// Could not find anywhere to go, just use where we are.
-		Debug.Log("Failed to find a valid start!");
 		return new Vector2(x, y); 
 	}
 
