@@ -1,29 +1,39 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ForceDNA {
 	static readonly float MUTATION_CHANCE = .05f;
 
+	// How close an object has to be to exert a force
 	static readonly float DIST_MIN = 1;
 	static readonly float DIST_MAX = 15;
-	static readonly float DIST_MUTATOR = 2;
+	static readonly float DIST_MUT = 2;
 
+	// The maximum value the sum of a force may exert
 	static readonly float FORCE_MIN = 1;
 	static readonly float FORCE_MAX = 10;
-	static readonly float FORCE_MUTATOR = 1;
+	static readonly float FORCE_MUT = 1;
 
+	// The constant times each individual object's force
+	// The higher const is the more equally weighted near and far objects will be
 	static readonly float CONSTANT_MIN = 20;
 	static readonly float CONSTANT_MAX = 150;
-	static readonly float CONSTANT_MUTATOR = 20;
+	static readonly float CONSTANT_MUT = 20;
 
+	// The maximum force an individual object may exert
+	// The higher the asymptote is the more strongly weighted very close objects are (distance of less than 1)
 	static readonly float ASYMPTOTE_MIN = 50;
 	static readonly float ASYMPTOTE_MAX = 300;
-	static readonly float ASMYPTOTE_MUTATOR = 40;
+	static readonly float ASMYPTOTE_MUT = 40;
 
+	// The number of steps ahead pathfinding will consider
 	static readonly float STEPS_MIN = 1;
 	static readonly float STEPS_MAX = 8;
-	static readonly float STEPS_MUTATOR = 1;
+	static readonly float STEPS_MUT = 1;
+
+	// The probability that we will be given a pathfind token, give we received one last frame
+	static readonly float CARRY_MIN = 0;
+	static readonly float CARRY_MAX = 1;
+	static readonly float CARRY_MUT = .1f;
 
 	public readonly FlockGenome Flock;
 	public readonly ComplexGenome Repulse;
@@ -32,7 +42,7 @@ public class ForceDNA {
 	public readonly ComplexGenome Reward;
 	public readonly PathfindGenome Pathfind;
 
-	public ForceDNA(){
+	public ForceDNA() {
 		Flock = new FlockGenome();
 		Repulse = new ComplexGenome();
 		Obstacle = new ComplexGenome();
@@ -49,7 +59,9 @@ public class ForceDNA {
 		}
 
 		public Genome(Genome parent) {
-			this.Distance = parent.Distance + Random.Range(-DIST_MUTATOR, DIST_MUTATOR);
+			if (Random.value < MUTATION_CHANCE) {
+				this.Distance = parent.Distance + Random.Range(-DIST_MUT, DIST_MUT);
+			}
 		}
 
 	}
@@ -64,8 +76,12 @@ public class ForceDNA {
 		}
 
 		public FlockGenome(FlockGenome parent) : base(parent) {
-			this.AlignForce = parent.AlignForce + Random.Range(-FORCE_MUTATOR, FORCE_MUTATOR);
-			this.CohesForce = parent.AlignForce + Random.Range(-FORCE_MUTATOR, FORCE_MUTATOR);
+			if (Random.value < MUTATION_CHANCE) {
+				this.AlignForce = parent.AlignForce + Random.Range(-FORCE_MUT, FORCE_MUT);
+			}
+			if (Random.value < MUTATION_CHANCE) {
+				this.CohesForce = parent.CohesForce + Random.Range(-FORCE_MUT, FORCE_MUT);
+			}
 		}
 	}
 
@@ -82,23 +98,34 @@ public class ForceDNA {
 		}
 
 		public ComplexGenome(ComplexGenome parent) : base(parent) {
-			this.Force = parent.Force + Random.Range(-FORCE_MUTATOR, FORCE_MUTATOR);
-			;
-			this.Constant = parent.Constant + Random.Range(-CONSTANT_MUTATOR, CONSTANT_MUTATOR);
-			this.Asymptote = parent.Asymptote + Random.Range(-ASMYPTOTE_MUTATOR, ASMYPTOTE_MUTATOR);
+			if (Random.value < MUTATION_CHANCE) {
+				this.Force = parent.Force + Random.Range(-FORCE_MUT, FORCE_MUT);
+			}
+			if (Random.value < MUTATION_CHANCE) {
+				this.Constant = parent.Constant + Random.Range(-CONSTANT_MUT, CONSTANT_MUT);
+			}
+			if (Random.value < MUTATION_CHANCE) {
+				this.Asymptote = parent.Asymptote + Random.Range(-ASMYPTOTE_MUT, ASMYPTOTE_MUT);
+			}
 		}
 	}
 
 	public class PathfindGenome: ComplexGenome {
 		public readonly float Steps;
+		public readonly float Carryover;
 
 		public PathfindGenome() : base() {
 			this.Steps = Random.Range(STEPS_MIN, STEPS_MAX);
+			this.Carryover = Random.Range(CARRY_MIN, CARRY_MAX);
 		}
 
 		public PathfindGenome(PathfindGenome parent) : base(parent) {
-			this.Steps = parent.Steps + Random.Range(-STEPS_MUTATOR, STEPS_MUTATOR);
+			if (Random.value < MUTATION_CHANCE) {
+				this.Steps = parent.Steps + Random.Range(-STEPS_MUT, STEPS_MUT);
+			}
+			if (Random.value < MUTATION_CHANCE) {
+				this.Carryover = parent.Carryover + Random.Range(-CARRY_MUT, CARRY_MUT);
+			}
 		}
 	}
-
 }

@@ -20,7 +20,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float ROOM_HEIGHT = 60;
 
 	private BirdControl[] birdControls;
-	private readonly int NUM_BIRDS = 60;
+	private readonly int NUM_BIRDS = 50;
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -130,7 +130,7 @@ public class FlockControl : MonoBehaviour {
 			float speed = Random.Range(MIN_SPEED, MAX_SPEED);
 			bird.Setup(size, speed, i);
 			bird.SetForce(new Vector2(Random.value-.5f,Random.value-.5f).normalized*bird.Speed);
-//			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
+			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
 		}
 
 		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {

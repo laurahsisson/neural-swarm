@@ -43,7 +43,6 @@ public class PathfindControl : MonoBehaviour {
 	}
 
 	public void InitializeGrid(FlockControl.UnityState us) {
-
 		CircleCollider2D cd = GetComponent<CircleCollider2D>();
 		gameObject.transform.localScale = new Vector3(CHECK_DISTANCES [0] * us.maxSize, CHECK_DISTANCES [0] * us.maxSize);
 		ContactFilter2D cf = new ContactFilter2D();
@@ -90,7 +89,7 @@ public class PathfindControl : MonoBehaviour {
 				int x = (int)(gx / GRID_STEP);
 				int y = (int)(gy / GRID_STEP);
 				Color c = Color.red;
-				if (grid [gx, gy]) {
+				if (gridAt(gx,gy)) {
 					c = Color.green;
 				}
 				Debug.DrawRay(new Vector3(x, y), new Vector3(Random.value - .5f, Random.value - .5f), c, 15f);
@@ -188,20 +187,17 @@ public class PathfindControl : MonoBehaviour {
 	}
 
 	private Vector2 nearestValidPos(int x, int y) {
-		if (x >= 0 && x < grid.GetLength(0) && y >= 0 && y < grid.GetLength(1) && grid [x, y]) {
+		if (gridAt(x,y)) {
 			return new Vector2(x, y);
 		}
 		int dist = 1;
 		while (dist < grid.GetLength(0) && dist < grid.GetLength(1)) {
 			for (int xo = -dist; xo < dist; xo++) {
 				int nx = x + xo;
-				if (nx < 0 || nx >= grid.GetLength(0)) {
-					continue;
-				}
-				if (y - dist >= 0 && grid [nx, y - dist]) {
+				if (gridAt(nx,y-dist)) {
 					return new Vector2(nx, y - dist);
 				}
-				if (y + dist < grid.GetLength(1) && grid [nx, y + dist]) {
+				if (gridAt(nx,y+dist)) {
 					return new Vector2(nx, y + dist);
 				}
 			}
@@ -209,13 +205,10 @@ public class PathfindControl : MonoBehaviour {
 
 			for (int yo = -dist; yo < dist; yo++) {
 				int ny = y + yo;
-				if (ny < 0 || ny >= grid.GetLength(1)) {
-					continue;
-				}
-				if (x - dist >= 0 && grid [x - dist, ny]) {
+				if (gridAt(x-dist,ny)) {
 					return new Vector2(x - dist, ny);
 				}
-				if (x + dist < grid.GetLength(0) && grid [x + dist, ny]) {
+				if (gridAt(x+dist,ny)) {
 					return new Vector2(x + dist, ny);
 				}
 			}
@@ -239,19 +232,22 @@ public class PathfindControl : MonoBehaviour {
 				}
 				examined.Add(pos);
 
-				if (x < 0 || x >= grid.GetLength(0)) {
-					continue;
-				}
-				if (y < 0 || y >= grid.GetLength(1)) {
-					continue;
-				}
-
-				if (grid [x, y]) {
+				if (gridAt(x,y)) {
 					ns.Add(pos);
 				}
 			}
 		}
 		return ns;
+	}
+
+	private bool gridAt(int x, int y) {
+		if (x < 0 || x >= grid.GetLength(0)) {
+			return false;
+		}
+		if (y < 0 || y >= grid.GetLength(1)) {
+			return false;
+		}
+		return grid [x, y];
 	}
 
 }
