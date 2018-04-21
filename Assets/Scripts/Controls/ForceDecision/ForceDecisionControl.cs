@@ -33,7 +33,8 @@ public class ForceDecisionControl : DecisionControl {
 	// The probability that we will pathfind regardless of their situation, given they did last frame
 	private static readonly float PATHFIND_CARRYOVER = .95f;
 	// How many steps away we will calculate the sum force of
-	private static readonly float PATHFIND_STEPS = 5;
+	private static readonly int PATHFIND_STEPS = 5;
+
 	private static readonly float PATHFIND_FORCE = 8f;
 	private static readonly float PATHFIND_CONST = 100;
 	private static readonly float PATHFIND_ASYMPTOTE = 200;
@@ -65,6 +66,10 @@ public class ForceDecisionControl : DecisionControl {
 			b1 = Mathf.Min(bl, br);
 			b2 = Mathf.Max(bl, br);
 		}
+	}
+
+	public override void InitializeModel() {
+		
 	}
 
 	public override void StartGeneration(FlockControl.UnityState us) {
