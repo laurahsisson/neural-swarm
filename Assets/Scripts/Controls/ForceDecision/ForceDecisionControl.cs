@@ -88,18 +88,16 @@ public class ForceDecisionControl : DecisionControl {
 			sf [i] = getStaticForce(us, i);
 		}
 
-		Vector2[] total = new Vector2[us.birds.Length];
+		Vector2[] forces = new Vector2[us.birds.Length];
+
 		for (int i = 0; i < sf.Length; i++) {
 			BirdControl me = us.birds [i];
-			total [i] = sf [i] + repulsion(us.birds, sf, me);
+			Vector2 final = sf [i] + repulsion(us.birds, sf, me);
+			forces [i] = steer(me, final);
+
 		}
 
-		Vector2[] forces = new Vector2[us.birds.Length];
-		for (int i = 0; i < sf.Length; i++) {
-			BirdControl me = us.birds [i];
-			forces [i] = steer(me, total [i]);
-		}
-		return sf;
+		return forces;
 	}
 
 	private Vector2 getStaticForce(FlockControl.UnityState us, int birdNumber) {
