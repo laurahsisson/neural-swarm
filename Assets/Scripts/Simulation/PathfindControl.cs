@@ -14,8 +14,7 @@ public class PathfindControl : MonoBehaviour {
 	private readonly float CUTOFF_DIST = 1.5f;
 	// The max number of colliders we will check against
 	private readonly int NUM_COLLIDERS = 10;
-	// The distances at which we will check if we hit more than 1 collider
-	private readonly float[] CHECK_DISTANCES = new float[]{ 1, 3, 4 };
+	private readonly float CHECK_DISTANCE = 2f;
 
 
 	private bool[,] grid;
@@ -44,13 +43,14 @@ public class PathfindControl : MonoBehaviour {
 
 	public void InitializeGrid(FlockControl.UnityState us) {
 		CircleCollider2D cd = GetComponent<CircleCollider2D>();
-		gameObject.transform.localScale = new Vector3(CHECK_DISTANCES [0] * us.maxSize, CHECK_DISTANCES [0] * us.maxSize);
+		gameObject.transform.localScale = new Vector3(CHECK_DISTANCE * us.maxSize, CHECK_DISTANCE * us.maxSize);
 		ContactFilter2D cf = new ContactFilter2D();
 		cf.useTriggers = true;
 		cf.layerMask = LayerMask.GetMask("Wall");
 		cf.useLayerMask = true;
 		Collider2D[] others = new Collider2D[NUM_COLLIDERS];
 		grid = new bool[(int)(us.roomWidth / GRID_STEP), (int)(us.roomHeight / GRID_STEP)];
+
 			
 		for (float x = 0; x < us.roomWidth; x += GRID_STEP) {
 			for (float y = 0; y < us.roomHeight; y += GRID_STEP) {
@@ -63,22 +63,7 @@ public class PathfindControl : MonoBehaviour {
 					continue;
 				}
 
-
-				bool foundSpace = false;
-				for (int i = CHECK_DISTANCES.Length - 1; i >= 0; i--) {
-					float s = CHECK_DISTANCES [i];
-					gameObject.transform.localScale = new Vector3(s * us.maxSize, s * us.maxSize);
-					hit = cd.OverlapCollider(cf, others);
-					if (hit == 0) {
-						foundSpace = true;
-						break;
-					}
-					if (hit == 1) {
-						foundSpace = false;
-						break;
-					}
-				}
-				grid [gx, gy] = foundSpace;
+				grid [gx, gy] = hit == 0;
 			}
 		}
 	}

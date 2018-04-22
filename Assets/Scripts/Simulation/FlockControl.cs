@@ -71,7 +71,7 @@ public class FlockControl : MonoBehaviour {
 
 	public void Start() {
 		if (!callingPython) {
-			decisionControl.InitializeModel();
+			decisionControl.InitializeModel(NUM_BIRDS);
 			Destroy(GameObject.FindGameObjectWithTag("ClientServer"));
 		}
 		Application.targetFrameRate = (int) (FRAMES_PER_SECOND*SIMULATION_SPEED);
@@ -111,7 +111,7 @@ public class FlockControl : MonoBehaviour {
 	}
 
 	private void endSimulation() {
-		StatsControl.GenerationStats gs = statsControl.CalculateStats(false);
+		StatsControl.GenerationStats gs = statsControl.CalculateStats();
 		if (!callingPython) {
 			decisionControl.EndGeneration(gs);
 		}

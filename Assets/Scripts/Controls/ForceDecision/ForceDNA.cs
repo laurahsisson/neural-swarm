@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Linq;
 
 public class ForceDNA {
 	static readonly float MUTATION_CHANCE = .05f;
@@ -35,54 +36,48 @@ public class ForceDNA {
 	static readonly float CARRY_MAX = 1;
 	static readonly float CARRY_MUT = .1f;
 
-	static readonly float COMPLETED_MULT = 1000;
+	static readonly float COMPLETED_MULT = 500;
 	static readonly float BIRD_MULT = 2;
 	static readonly float WALL_MULT = 1;
 
-	static readonly int NUM_GENOMES = 40;
 
 	private Genome[] genomes;
 	private float[] scores;
-	private int current = 0;
 
-	public ForceDNA() {
-		genomes = new Genome[NUM_GENOMES];
-		scores = new float[NUM_GENOMES];
-		for (int i = 0; i < NUM_GENOMES; i++) {
-			genomes [i] = new Genome();
+	public ForceDNA(int numBirds) {
+		genomes = new Genome[numBirds];
+		for (int i = 0; i < numBirds; i++) {
+			genomes[i] = new Genome();
 		}
-		current = -1;
 	}
 
-	public Genome Next() {
-		current += 1;
-		if (current == genomes.Length) {
-			current = 0;
-			evolve();
-		}
-		return genomes [current];
+	public Genome[] Next() {
+		// Not a deep copy, but Genomes and Chroms are immutable, so we are safe
+		return (Genome[]) genomes.Clone();
 	}
 
-	public void SetScore(StatsControl.GenerationStats gs) {
-		float s = gs.completed * COMPLETED_MULT - (gs.birdCollisions * BIRD_MULT + gs.wallCollisions * WALL_MULT);
-		scores [current] = Mathf.Max(s, 1);
-	}
-
-	private void evolve() {
+	public void Evolve(StatsControl.GenerationStats gs) {
+		float[] scores = new float[gs.completed.Length];
 		float sum = 0;
 		for (int i = 0; i < scores.Length; i++) {
-			sum += scores [i];
+			scores[i] = Mathf.Max(1,(gs.completed[i]*COMPLETED_MULT) - (gs.birdCollisions[i]*BIRD_MULT+gs.wallCollisions[i]*WALL_MULT));
+			sum += scores[i];
 		}
-		Debug.Log(sum/scores.Length);
+		Debug.Log(gs.completed.Sum() + "," + gs.birdCollisions.Sum() + "," + gs.wallCollisions.Sum() + ":" + sum);
+		// Score for a bird is that individual birds score plus average score. In better performing generations, all birds are more equall likely to reproduce.
+		float ave = sum/scores.Length;
+		for (int i = 0; i < scores.Length; i++) {
+			scores[i] += ave;
+		}
+		sum *= 2;
 
-		Genome[] newGenomes = new Genome[NUM_GENOMES];
+		Genome[] newGenomes = new Genome[genomes.Length];
 
-		for (int i = 0; i < NUM_GENOMES; i++) {
+		for (int i = 0; i < genomes.Length; i++) {
 			Genome p1 = selectParent(scores,sum);
 			Genome p2 = selectParent(scores,sum);
 			newGenomes[i] = new Genome(p1,p2);
 		}
-
 	}
 
 	private Genome selectParent(float[] scores, float sum) {

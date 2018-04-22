@@ -12,11 +12,10 @@ public class ForceDecisionControl : DecisionControl {
 	private static readonly float VIEW_ANGLE = 45f;
 
 	private ForceDNA dna;
-	private ForceDNA.Genome current;
+	private ForceDNA.Genome[] genomes;
 
 	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
 	private List<BirdControl>[] nearbyBirds;
-	private int[] numPathFrames;
 
 	private Vector2[] rewardForces;
 	private bool[] gotRewardToken;
@@ -32,19 +31,18 @@ public class ForceDecisionControl : DecisionControl {
 		}
 	}
 
-	public override void InitializeModel() {
-		dna = new ForceDNA();
+	public override void InitializeModel(int numBirds) {
+		dna = new ForceDNA(numBirds);
 	}
 
 	public override void StartGeneration(FlockControl.UnityState us) {
 		pf.InitializeGrid(us);
-		current = dna.Next();
-		numPathFrames = new int[us.birds.Length];
+		genomes = dna.Next();
 		gotRewardToken = new bool[us.birds.Length];
 	}
 
 	public override void EndGeneration(StatsControl.GenerationStats gs) {
-		dna.SetScore(gs);
+		dna.Evolve(gs);
 	}
 
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
@@ -53,7 +51,12 @@ public class ForceDecisionControl : DecisionControl {
 			nearbyBirds [i] = new List<BirdControl>();
 		}
 
-		float maxRange = Mathf.Max(current.Flock.Distance, current.Repulse.Distance);
+		float maxRange = 0;
+		foreach (ForceDNA.Genome g in genomes) {
+			maxRange = Mathf.Max(maxRange,g.Flock.Distance);
+			maxRange = Mathf.Max(maxRange,g.Repulse.Distance);
+		}
+
 		for (int i = 0; i < us.birds.Length; i++) {
 			BirdControl b1 = us.birds [i];
 			if (!b1.Moving) {
@@ -68,7 +71,7 @@ public class ForceDecisionControl : DecisionControl {
 
 				Vector2 d = minDelta(b1, b2);
 				btDistances [new BirdTuple(i, j)] = d;
-		
+
 				if (d.magnitude > maxRange) {
 					continue;
 				}
@@ -112,16 +115,16 @@ public class ForceDecisionControl : DecisionControl {
 	}
 
 	private Vector2 steer(BirdControl me, Vector2 force) {
-		/* We want to steer our current velocity towards our aim velocity (the force on our bird), so take the average of the two
-		 * and reflect it over the goal/ That way we aim in a way that slows us down only in the desired dimension, and speeds 
-		 * us up in the correct dimension.
-		 */
+		/* We want to steer our genomes[me.Number] velocity towards our aim velocity (the force on our bird), so take the average of the two
+         * and reflect it over the goal/ That way we aim in a way that slows us down only in the desired dimension, and speeds 
+         * us up in the correct dimension.
+         */
 		Vector2 vel = me.Velocity.normalized;
 		Vector2 aim = force.normalized;
 
 		Vector2 ave = ((vel + aim) / 2).normalized;
 		Vector2 adjustment = Vector2.zero;
-		// If our aim velocity is close to orthogonal to our current velocity, just steer using our current velocity
+		// If our aim velocity is close to orthogonal to our genomes[me.Number] velocity, just steer using our genomes[me.Number] velocity
 		if (Vector2.Dot(vel, aim) > -.5f && vel != Vector2.zero) {
 			adjustment = Vector2.Reflect(-1 * ave, -1 * aim).normalized;
 		} else {
@@ -136,9 +139,9 @@ public class ForceDecisionControl : DecisionControl {
 		bool[] nextGotToken = new bool[us.birds.Length];
 
 		/* In this function, we give away a number of tokens equal to PATHFIND_TOKENS to birds so that they use the more computational expensive pathfinding.
-		 * We prioritize the birds that previously received tokens, then birds with no leaders, but we want to make sure that as the number of active birds falls,
-		 * we still give away all of our tokens to birds that are active. If we have more tokens than active birds, every bird should use pathfinding.
-		 */
+         * We prioritize the birds that previously received tokens, then birds with no leaders, but we want to make sure that as the number of active birds falls,
+         * we still give away all of our tokens to birds that are active. If we have more tokens than active birds, every bird should use pathfinding.
+         */
 
 		// First we give priority to birds that are already holding tokens
 		for (int bird = 0; bird < us.birds.Length; bird++) {
@@ -146,7 +149,7 @@ public class ForceDecisionControl : DecisionControl {
 			if (!gotRewardToken [bird] || !me.Moving) {
 				continue;
 			}
-			if (Random.value > current.Pathfind.Carryover) {
+			if (Random.value > genomes[me.Number].Pathfind.Carryover) {
 				continue;
 			}
 			// This bird had a token and carries it over in this frame
@@ -238,7 +241,7 @@ public class ForceDecisionControl : DecisionControl {
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = getDelta(bt, me.Number);
-			if (delta.magnitude > current.Flock.Distance) {
+			if (delta.magnitude > genomes[me.Number].Flock.Distance) {
 				continue;
 			}
 			sumPosition += (Vector2)b.transform.position;
@@ -249,7 +252,7 @@ public class ForceDecisionControl : DecisionControl {
 		}
 		Vector2 averagePosition = sumPosition / count;
 		Vector2 force = (averagePosition - (Vector2)me.transform.position);
-		return Vector2.ClampMagnitude(force, current.Flock.CohesForce);
+		return Vector2.ClampMagnitude(force, genomes[me.Number].Flock.CohesForce);
 	}
 
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
@@ -257,12 +260,12 @@ public class ForceDecisionControl : DecisionControl {
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = getDelta(bt, me.Number);
-			if (delta.magnitude > current.Flock.Distance) {
+			if (delta.magnitude > genomes[me.Number].Flock.Distance) {
 				continue;
 			}
 			force += b.Velocity.normalized;
 		}
-		return Vector2.ClampMagnitude(force, current.Flock.AlignForce);
+		return Vector2.ClampMagnitude(force, genomes[me.Number].Flock.AlignForce);
 	}
 
 	private Vector2 repulsion(BirdControl[] birds, Vector2[] staticForces, BirdControl me) {
@@ -270,13 +273,13 @@ public class ForceDecisionControl : DecisionControl {
 		foreach (BirdControl b in nearbyBirds[me.Number]) {
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = -1 * getDelta(bt, me.Number); // getDelta points to the other birds, so reverse it
-			if (delta.magnitude > current.Repulse.Distance) {
+			if (delta.magnitude > genomes[me.Number].Repulse.Distance) {
 				continue;
 			}
 			float adaptiveForce = Mathf.Max(1, staticForces [b.Number].sqrMagnitude);
-			force += individualForce(delta, current.Repulse.Constant * adaptiveForce, current.Repulse.Asymptote);
+			force += individualForce(delta, genomes[me.Number].Repulse.Constant * adaptiveForce, genomes[me.Number].Repulse.Asymptote);
 		}
-		return Vector2.ClampMagnitude(force, current.Repulse.Force);
+		return Vector2.ClampMagnitude(force, genomes[me.Number].Repulse.Force);
 	}
 
 
@@ -284,45 +287,45 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 force = Vector2.zero;
 		foreach (GameObject wall in walls) {
 			ColliderDistance2D cd = me.GetComponent<Collider2D>().Distance(wall.GetComponent<Collider2D>());
-			if (cd.distance > current.Obstacle.Distance) {
+			if (cd.distance > genomes[me.Number].Obstacle.Distance) {
 				continue;
 			}
 			Vector2 delta = cd.pointA - cd.pointB;
-			force += individualForce(delta, current.Obstacle.Constant, current.Obstacle.Asymptote);
+			force += individualForce(delta, genomes[me.Number].Obstacle.Constant, genomes[me.Number].Obstacle.Asymptote);
 		}
-		return Vector2.ClampMagnitude(force, current.Obstacle.Force);
+		return Vector2.ClampMagnitude(force, genomes[me.Number].Obstacle.Force);
 	}
 
 	private Vector2 boundary(FlockControl.UnityState us, BirdControl me) {
 		float xForce = 0;
 		float yForce = 0;
-		if (me.transform.position.x <= current.Boundary.Distance) {
+		if (me.transform.position.x <= genomes[me.Number].Boundary.Distance) {
 			float xDist = me.transform.position.x - 0;
-			xForce = current.Boundary.Constant / (xDist * xDist);
-			xForce = Mathf.Clamp(xForce, - current.Boundary.Force, current.Boundary.Force);
+			xForce = genomes[me.Number].Boundary.Constant / (xDist * xDist);
+			xForce = Mathf.Clamp(xForce, - genomes[me.Number].Boundary.Force, genomes[me.Number].Boundary.Force);
 		}
 
-		if (me.transform.position.y <= current.Boundary.Distance) {
+		if (me.transform.position.y <= genomes[me.Number].Boundary.Distance) {
 			float yDist = me.transform.position.y - 0;
-			yForce =  current.Boundary.Constant / (yDist * yDist);
-			yForce = Mathf.Clamp(yForce, -current.Boundary.Force, current.Boundary.Force);
+			yForce =  genomes[me.Number].Boundary.Constant / (yDist * yDist);
+			yForce = Mathf.Clamp(yForce, -genomes[me.Number].Boundary.Force, genomes[me.Number].Boundary.Force);
 		}
 
-		if (me.transform.position.x >= us.roomWidth - current.Boundary.Distance) {
+		if (me.transform.position.x >= us.roomWidth - genomes[me.Number].Boundary.Distance) {
 			float xDist = me.transform.position.x - us.roomWidth;
 			// We lose the sign of the force by squaring the distance so we need to add it back here
-			xForce = -1 *  current.Boundary.Constant / (xDist * xDist); 
-			xForce = Mathf.Clamp(xForce, -current.Boundary.Force, current.Boundary.Force);
+			xForce = -1 *  genomes[me.Number].Boundary.Constant / (xDist * xDist); 
+			xForce = Mathf.Clamp(xForce, -genomes[me.Number].Boundary.Force, genomes[me.Number].Boundary.Force);
 		}
 
-		if (me.transform.position.y >= us.roomHeight - current.Boundary.Distance) {
+		if (me.transform.position.y >= us.roomHeight - genomes[me.Number].Boundary.Distance) {
 			float yDist = me.transform.position.y - us.roomHeight;
-			yForce = -1 *  current.Boundary.Constant / (yDist * yDist);
-			yForce = Mathf.Clamp(yForce, -current.Boundary.Force, current.Boundary.Force);
+			yForce = -1 *  genomes[me.Number].Boundary.Constant / (yDist * yDist);
+			yForce = Mathf.Clamp(yForce, -genomes[me.Number].Boundary.Force, genomes[me.Number].Boundary.Force);
 		}
 
 		Vector2 force = new Vector2(xForce, yForce);
-		force = Vector2.ClampMagnitude(force, current.Boundary.Force);
+		force = Vector2.ClampMagnitude(force, genomes[me.Number].Boundary.Force);
 		return force;
 	}
 
@@ -332,22 +335,22 @@ public class ForceDecisionControl : DecisionControl {
 		}
 
 		Vector2 force = Vector2.zero;
-		for (int i = 0; i < current.Pathfind.Steps && i < path.Length; i++) {
+		for (int i = 0; i < genomes[me.Number].Pathfind.Steps && i < path.Length; i++) {
 
 			Vector2 delta = (path [i] - (Vector2)me.transform.position);
-			force += individualForce(delta.normalized, i, current.Pathfind.Constant, current.Pathfind.Asymptote);
+			force += individualForce(delta.normalized, i, genomes[me.Number].Pathfind.Constant, genomes[me.Number].Pathfind.Asymptote);
 		}
-		return Vector2.ClampMagnitude(force, current.Pathfind.Force);
+		return Vector2.ClampMagnitude(force, genomes[me.Number].Pathfind.Force);
 	}
 
 	private Vector2 rewardSimple(Vector2 goalPos, BirdControl me) {
 		Vector2 delta = goalPos - (Vector2)me.transform.position;
 		float dist = delta.magnitude;
-		if (dist > current.Reward.Distance) {
+		if (dist > genomes[me.Number].Reward.Distance) {
 			return Vector2.zero;
 		}
 		// Because we have only a single force, we still follow the same routine as above, but our asymptote is our total force
-		return individualForce(delta, current.Reward.Constant, current.Reward.Force);
+		return individualForce(delta, genomes[me.Number].Reward.Constant, genomes[me.Number].Reward.Force);
 	}
 
 	private Vector2 minDelta(BirdControl b1, BirdControl b2) {
@@ -356,11 +359,11 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 b1FuturePos = cd.pointA + b1.Velocity * Time.deltaTime;
 		Vector2 b2FuturePos = cd.pointB + b2.Velocity * Time.deltaTime;
 
-		Vector2 current = (cd.pointB - cd.pointA);
+		Vector2 now = (cd.pointB - cd.pointA);
 		Vector2 b1Future = (cd.pointB - b1FuturePos);
 		Vector2 b2Future = (b2FuturePos - cd.pointA);
 		Vector2 future = (b2FuturePos - b1FuturePos);
-		Vector2[] ds = new Vector2[]{ current, b1Future, b2Future, future };
+		Vector2[] ds = new Vector2[]{ now, b1Future, b2Future, future };
 
 		float minDist = Mathf.Infinity;
 
@@ -397,7 +400,7 @@ public class ForceDecisionControl : DecisionControl {
 		return norm * force;
 	}
 
-	private bool inView(BirdControl other, BirdControl me) {	
+	private bool inView(BirdControl other, BirdControl me) {    
 		float dir = Mathf.Rad2Deg * Mathf.Atan2(me.Velocity.y, me.Velocity.x);
 		Vector3 delta = other.transform.position - me.transform.position;
 		float angleTo = Mathf.Rad2Deg * Mathf.Atan2(delta.y, delta.x);

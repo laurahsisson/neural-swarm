@@ -1,105 +1,49 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using System.Linq;
 
 public class StatsControl : MonoBehaviour {
 	public Text text;
 
-	private int wallCollisions;
-	private int birdCollisions;
-	private float[] completionTimes;
-	private float startTime;
-	private int completed;
+	private int[] wallCollisions;
+	private int[] birdCollisions;
+	private int[] completed;
 
 	public struct GenerationStats {
-		public int completed;
-		public int wallCollisions;
-		public int birdCollisions;
-		public float averageTime;
-		public int numBirds;
-	}
-
-	public struct PartialStats {
-		public int completed;
-		public int wallCollisions;
-		public int birdCollisions;
-		public int numBirds;
+		public int[] completed;
+		public int[] wallCollisions;
+		public int[] birdCollisions;
 	}
 
 	public void Setup(int numBirds, float maxTime) {
-		wallCollisions = 0;
-		birdCollisions = 0;
-		completed = 0;
-		completionTimes = new float[numBirds];
-		startTime = Time.time;
-		// Because we won't call complete on birds that do not complete the goal, assume they took maxTime
-		for (int i = 0; i < completionTimes.Length; i++) {
-			completionTimes [i] = maxTime;
-		}
+		wallCollisions = new int[numBirds];
+		birdCollisions = new int[numBirds];
+		completed = new int[numBirds];
 	}
 
-	public void Complete(int number) {
-		completionTimes [number] = Time.time - startTime;
-		completed++;
+	public void Complete(int b) {
+		completed[b] = 1;
 	}
 
-	public void AddWallCollision() {
-		wallCollisions++;
+	public void AddWallCollision(int b) {
+		wallCollisions[b]++;
 	}
 
-	public void AddBirdCollision() {
-		birdCollisions++;
+	// Called twice for each collision (once for each bird involved)
+	public void AddBirdCollision(int b) {
+		birdCollisions[b]++;
 	}
 
-	public GenerationStats CalculateStats(bool shouldPrint) {
-		float maxTime = 0;
-		float minTime = Mathf.Infinity;
-		float totalTime = 0;
-		for (int i = 0; i < completionTimes.Length; i++) {
-			float time = completionTimes [i];
-			if (time > maxTime) {
-				maxTime = time;
-			}
-			if (time < minTime) {
-				minTime = time;
-			}
-			totalTime += time;
-		}
-		float averageTime = totalTime / completionTimes.Length;
-		float stdDevSum = 0;
-		for (int i = 0; i < completionTimes.Length; i++) {
-			stdDevSum = Mathf.Pow(completionTimes [i], 2f);
-		}
-		float standardDeviation = Mathf.Pow(stdDevSum / (completionTimes.Length - 1), .5f);
-
-		if (shouldPrint) {
-			Debug.Log("Birds Completed: " + completed);
-			Debug.Log("Bird/Wall Collisions: " + wallCollisions);
-			Debug.Log("Bird/Wall Collisions: " + birdCollisions);
-			Debug.Log("Minimum Completion Time: " + minTime);
-			Debug.Log("Maximum Completion Time: " + maxTime);
-			Debug.Log("Average Completion Time: " + averageTime);
-			Debug.Log("Standard Deviation of Completion Time: " + standardDeviation);
-		}
+	public GenerationStats CalculateStats() {
 		GenerationStats gs = new GenerationStats();
-		gs.completed = completed;
-		gs.birdCollisions = birdCollisions;
-		gs.wallCollisions = wallCollisions;
-		gs.averageTime = averageTime;
-		gs.numBirds = completionTimes.Length;
+		gs.birdCollisions = (int[]) birdCollisions.Clone();
+		gs.wallCollisions = (int[]) wallCollisions.Clone();
+		gs.completed = (int[]) completed.Clone();
 		return gs;
 	}
 
-	public PartialStats CalculatePartial() {
-		PartialStats ps = new PartialStats();
-		ps.completed = completed;
-		ps.birdCollisions = birdCollisions;
-		ps.wallCollisions = wallCollisions;
-		ps.numBirds = completionTimes.Length;
-		return ps;
-	}
-
 	private void Update() {
-		text.text = "Completed: " + completed.ToString() + "\t\t" + "Bird\\Bird: " + birdCollisions + "\t\t" + "Bird\\Wall: " + wallCollisions;
+		text.text = "Completed: " + completed.Sum().ToString() + "\t\t" + "Bird\\Bird: " + birdCollisions.Sum().ToString() + "\t\t" + "Bird\\Wall: " + wallCollisions.Sum().ToString();
 	}
 
 }

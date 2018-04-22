@@ -193,7 +193,8 @@ public class BirdControl : MonoBehaviour {
 
 		other.velocity = getResultantVelocity(other.transform.position, transform.position, other.mass, mass, other.velocity, velocity);
 		other.updateRotation();
-		statsControl.AddBirdCollision();
+		statsControl.AddBirdCollision(number);
+		statsControl.AddBirdCollision(other.number);
 
 	}
 
@@ -217,6 +218,6 @@ public class BirdControl : MonoBehaviour {
 		ColliderDistance2D dist = gameObject.GetComponent<Collider2D>().Distance(other);
 		transform.position += (Vector3)dist.normal * dist.distance;
 		velocity = getResultantVelocity(transform.position, dist.pointB, mass, Mathf.Infinity, velocity, Vector2.zero);
-		statsControl.AddWallCollision();
+		statsControl.AddWallCollision(number);
 	}
 }

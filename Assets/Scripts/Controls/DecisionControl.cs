@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class DecisionControl : MonoBehaviour {
 
-	public virtual void InitializeModel() {
+	public virtual void InitializeModel(int numBirds) {
 	}
 
 	public virtual void StartGeneration(FlockControl.UnityState us) {
