@@ -21,6 +21,7 @@ public class FlockControl : MonoBehaviour {
 
 	private BirdControl[] birdControls;
 	private readonly int NUM_BIRDS = 50;
+	private Vector2[] startPositions;
 
 	private readonly float MIN_SIZE = .8f;
 	private readonly float MAX_SIZE = 1.1f;
@@ -100,7 +101,28 @@ public class FlockControl : MonoBehaviour {
 		for (int i = 0; i < walls.Length; i++) {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
 		}
+			
+		startPositions = new Vector2[NUM_BIRDS];
+		randomizePositions();
+		resetSimulation();
+	}
 
+	public void IncrementGoal() {
+		reachedGoal++;
+		if (reachedGoal == NUM_BIRDS) {
+			endSimulation();
+		}
+	}
+
+	private void endSimulation() {
+		StatsControl.GenerationStats gs = statsControl.CalculateStats();
+		if (!callingPython) {
+			decisionControl.EndGeneration(gs);
+		}
+		resetSimulation();
+	}
+
+	private void randomizePositions() {
 		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
 			float width = Random.Range(WALL_MIN_WIDTH, WALL_MAX_WIDTH);
 			float area = Random.Range(WALL_MIN_AREA, WALL_MAX_AREA);
@@ -124,37 +146,25 @@ public class FlockControl : MonoBehaviour {
 			}
 		}
 
-
-		resetSimulation();
-	}
-
-	public void IncrementGoal() {
-		reachedGoal++;
-		if (reachedGoal == NUM_BIRDS) {
-			endSimulation();
-		}
-	}
-
-	private void endSimulation() {
-		StatsControl.GenerationStats gs = statsControl.CalculateStats();
-		if (!callingPython) {
-			decisionControl.EndGeneration(gs);
-		}
-		resetSimulation();
-	}
-
-	// Resets the walls, goal and all birds.
-	private void resetSimulation() {
-
-		reachedGoal = 0;
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			BirdControl bird = birdControls [i];
-			bird.transform.position = randomPosition();
+			startPositions[i] = randomPosition();
 			float size = Random.Range(MIN_SIZE, MAX_SIZE);
 			float speed = Random.Range(MIN_SPEED, MAX_SPEED);
 			bird.Setup(size, speed, i);
 			bird.SetForce(new Vector2(Random.value-.5f,Random.value-.5f).normalized*bird.Speed);
 			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
+		}
+
+	}
+
+	// Resets the walls, goal and all birds.
+	private void resetSimulation() {
+		reachedGoal = 0;
+		for (int i = 0; i < NUM_BIRDS; i++) {
+			BirdControl bird = birdControls [i];
+			bird.transform.position = startPositions[i];
+			bird.Reset();
 		}
 
 		statsControl.Setup(NUM_BIRDS, MAX_TIME);
@@ -246,16 +256,6 @@ public class FlockControl : MonoBehaviour {
 
 	private Vector3 randomPosition() {
 		return new Vector3(Random.Range(0, ROOM_WIDTH), Random.Range(0, ROOM_HEIGHT), 0);
-	}
-
-	private Vector3 random2Position(int i) {
-		if (i < 10) {
-			return new Vector3(12, 25 - i + 2, 0);
-		} else if (i < 20) {
-			return new Vector3(30, 25 - i + 2, 0);
-		} else {
-			return new Vector3(12 + i + 2, 35, 0);
-		}
 	}
 
 	private void Update() {

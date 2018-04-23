@@ -85,6 +85,13 @@ public class BirdControl : MonoBehaviour {
 		gameObject.GetComponent<Collider2D>().enabled = true;
 	}
 
+	public void Reset() {
+		this.velocity = Vector2.zero;
+		this.force = Vector2.zero;
+		this.lastPos = transform.position;
+		moving = true;
+		gameObject.GetComponent<Collider2D>().enabled = true;
+	}
 
 	public void SetForce(Vector2 force) {
 		if (force.magnitude > speed * 1.001f) {

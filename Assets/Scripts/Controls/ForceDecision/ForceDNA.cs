@@ -4,7 +4,6 @@ using System.Linq;
 public class ForceDNA {
 	// Use a high mutation rate because we are not flipping bits but modifying floats
 	static readonly float MUTATION_CHANCE = .25f;
-
 	// How far in our range we travel in one mutation
 	static readonly float MUTATION_RATE = .1f;
 
