@@ -6,15 +6,40 @@ from math import sqrt
 # source: https://blog.sicara.com/getting-started-genetic-algorithms-python-tutorial-81ffa1dd72f9
 
 class GeneticBird(BaseBird):
+    #def init
+        
+    # this function is called several times per second
     def make_decision(self, bird_number):
-        return generate_random_vector()
-    
+        
+        b = self.ws.birds[bird_number]
+        bird_pos = xy_dict_to_vector(b["position"])
+        current_position = self.ws.unity_to_grid(bird_pos)
+        bird_x = current_position[0]
+        bird_y = current_position[1]
+        
+        modify_grid(self.ws.grid)
+        print(grid)
+        return grid[i][j]
+
+        # modify the world state, rewrite it into a list of lists with random vectors where there aren't walls or goals
+        # look into world state, figure out which square you're in, return vector associated with that square
+        # this becomes your "genes/alleles", so modify the rest of the alg aaccordingly.
+       
+        # and then, as for getting the position of the bird when it bumps into a wall, you either have to create a new flag (study the python and BirdControl.cs code)
+        # or you can instead implement it in unity (and move this project over to cs)
+        # G L
+
+
+def modify_grid(grid):
+    for i in range(len(grid)):
+        for j in range(len(grid[i])):
+            grid[i][j] = generate_random_vector()
 
 # fitness is eucliedean distance
 # returns euclidean distance between two points provided in a tuple
 def euclidean(points_tup): # points_tup is ( (x1, x2), (y1, y2) )
     (x1,x2), (y1,y2) = points_tup
-    return math.sqrt( ((y1-x1)**2) + ((y2-x2)**2) ) # distance formula
+    return sqrt( ((y1-x1)**2) + ((y2-x2)**2) ) # distance formula
 
 # how "fit" a bird is: how close it got to the goal before colliding
 def fitness(end_position, goal_position):
@@ -24,8 +49,8 @@ def fitness(end_position, goal_position):
 # use random vectors for our initial population
 # returns a list with some x and y
 def generate_random_vector():
-    random_x = random.uniform(-10.0, 10.0)
-    random_y = random.uniform(-10.0, 10.0)
+    random_x = random.uniform(-10, 10)
+    random_y = random.uniform(-10, 10)
     return [random_x,random_y]
 
 # get our first generation of birds

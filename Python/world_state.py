@@ -90,6 +90,7 @@ class WorldState:
     def translate_shape(self,shape,offset):
         return affin.translate(shape,xoff=offset[0],yoff=offset[1])
 
+    # up = unity posiiton (im guessing)
     def unity_to_grid(self,up):
         point = [up[0]/self.grid_step,up[1]/self.grid_step]
         return [int(point[0]),int(point[1])]
