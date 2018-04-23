@@ -2,39 +2,44 @@
 using System.Linq;
 
 public class ForceDNA {
-	static readonly float MUTATION_CHANCE = .05f;
+	// Use a high mutation rate because we are not flipping bits but modifying floats
+	static readonly float MUTATION_CHANCE = .25f;
+
+	// How far in our range we travel in one mutation
+	static readonly float MUTATION_RATE = .1f;
+
 
 	// How close an object has to be to exert a force
 	static readonly float DIST_MIN = 1;
-	static readonly float DIST_MAX = 15;
-	static readonly float DIST_MUT = 2;
+	static readonly float DIST_MAX = 20;
+	static readonly float DIST_MUT = (DIST_MIN+DIST_MAX)*MUTATION_RATE;
 
 	// The maximum value the sum of a force may exert
 	static readonly float FORCE_MIN = 1;
-	static readonly float FORCE_MAX = 10;
-	static readonly float FORCE_MUT = 1;
+	static readonly float FORCE_MAX = 15;
+	static readonly float FORCE_MUT = (FORCE_MIN+FORCE_MAX)*MUTATION_RATE;
 
 	// The constant times each individual object's force
 	// The higher const is the more equally weighted near and far objects will be
 	static readonly float CONSTANT_MIN = 20;
 	static readonly float CONSTANT_MAX = 150;
-	static readonly float CONSTANT_MUT = 20;
+	static readonly float CONSTANT_MUT = (CONSTANT_MIN+CONSTANT_MAX)*MUTATION_RATE;
 
 	// The maximum force an individual object may exert
 	// The higher the asymptote is the more strongly weighted very close objects are (distance of less than 1)
 	static readonly float ASYMPTOTE_MIN = 50;
 	static readonly float ASYMPTOTE_MAX = 300;
-	static readonly float ASMYPTOTE_MUT = 40;
+	static readonly float ASYMPTOTE_MUT = (ASYMPTOTE_MIN+ASYMPTOTE_MAX)*MUTATION_RATE;
 
 	// The number of steps ahead pathfinding will consider
-	static readonly float STEPS_MIN = 1;
+	static readonly float STEPS_MIN = 3;
 	static readonly float STEPS_MAX = 8;
-	static readonly float STEPS_MUT = 1;
+	static readonly float STEPS_MUT = (STEPS_MIN+STEPS_MAX)*MUTATION_RATE;
 
 	// The probability that we will be given a pathfind token, give we received one last frame
 	static readonly float CARRY_MIN = 0;
 	static readonly float CARRY_MAX = 1;
-	static readonly float CARRY_MUT = .1f;
+	static readonly float CARRY_MUT = (CARRY_MIN+CARRY_MAX)*MUTATION_RATE;
 
 	static readonly float COMPLETED_MULT = 500;
 	static readonly float BIRD_MULT = 2;
@@ -108,12 +113,12 @@ public class ForceDNA {
 		}
 
 		public Genome(Genome p1, Genome p2) {
-			Flock = new FlockChrom(Random.value>.5f ? p1.Flock : p2.Flock);
-			Repulse = new ComplexChrom(Random.value>.5f ? p1.Repulse : p2.Repulse);
-			Obstacle = new ComplexChrom(Random.value>.5f ? p1.Obstacle : p2.Obstacle);
-			Boundary = new ComplexChrom(Random.value>.5f ? p1.Boundary : p2.Boundary);
-			Reward = new ComplexChrom(Random.value>.5f ? p1.Reward : p2.Reward);
-			Pathfind = new PathfindChrom(Random.value>.5f ? p1.Pathfind : p2.Pathfind);
+			Flock = new FlockChrom(p1.Flock, p2.Flock);
+			Repulse = new ComplexChrom(p1.Repulse, p2.Repulse);
+			Obstacle = new ComplexChrom(p1.Obstacle, p2.Obstacle);
+			Boundary = new ComplexChrom(p1.Boundary, p2.Boundary);
+			Reward = new ComplexChrom(p1.Reward, p2.Reward);
+			Pathfind = new PathfindChrom(p1.Pathfind, p2.Pathfind);
 		}
 	}
 
@@ -124,10 +129,9 @@ public class ForceDNA {
 			this.Distance = Random.Range(DIST_MIN, DIST_MAX);
 		}
 
-		public Chrom(Chrom parent) {
-			if (Random.value < MUTATION_CHANCE) {
-				this.Distance = parent.Distance + Random.Range(-DIST_MUT, DIST_MUT);
-			}
+		public Chrom(Chrom p1, Chrom p2) {
+			float dm = (Random.value < MUTATION_CHANCE) ? Random.Range(-DIST_MUT, DIST_MUT) : 0;
+			this.Distance = (Random.value>.5f ? p1.Distance : p2.Distance) + dm;
 		}
 
 	}
@@ -141,13 +145,12 @@ public class ForceDNA {
 			this.CohesForce = Random.Range(FORCE_MIN, FORCE_MAX);
 		}
 
-		public FlockChrom(FlockChrom parent) : base(parent) {
-			if (Random.value < MUTATION_CHANCE) {
-				this.AlignForce = parent.AlignForce + Random.Range(-FORCE_MUT, FORCE_MUT);
-			}
-			if (Random.value < MUTATION_CHANCE) {
-				this.CohesForce = parent.CohesForce + Random.Range(-FORCE_MUT, FORCE_MUT);
-			}
+		public FlockChrom(FlockChrom p1, FlockChrom p2) : base(p1, p2) {
+			float am = (Random.value < MUTATION_CHANCE) ? Random.Range(-FORCE_MUT, FORCE_MUT) : 0;
+			this.AlignForce = (Random.value>.5f ? p1.AlignForce : p2.AlignForce) + am;
+
+			float cm = (Random.value < MUTATION_CHANCE) ? Random.Range(-FORCE_MUT, FORCE_MUT) : 0;
+			this.CohesForce = (Random.value>.5f ? p1.CohesForce : p2.CohesForce) + cm;
 		}
 	}
 
@@ -163,16 +166,16 @@ public class ForceDNA {
 			this.Asymptote = Random.Range(ASYMPTOTE_MIN, ASYMPTOTE_MAX);
 		}
 
-		public ComplexChrom(ComplexChrom parent) : base(parent) {
-			if (Random.value < MUTATION_CHANCE) {
-				this.Force = parent.Force + Random.Range(-FORCE_MUT, FORCE_MUT);
-			}
-			if (Random.value < MUTATION_CHANCE) {
-				this.Constant = parent.Constant + Random.Range(-CONSTANT_MUT, CONSTANT_MUT);
-			}
-			if (Random.value < MUTATION_CHANCE) {
-				this.Asymptote = parent.Asymptote + Random.Range(-ASMYPTOTE_MUT, ASMYPTOTE_MUT);
-			}
+		public ComplexChrom(ComplexChrom p1, ComplexChrom p2) : base(p1, p2) {
+			float fm = (Random.value < MUTATION_CHANCE) ? Random.Range(-FORCE_MUT, FORCE_MUT) : 0;
+			this.Force = (Random.value>.5f ? p1.Force : p2.Force) + fm;
+
+			float cm = (Random.value < MUTATION_CHANCE) ? Random.Range(-CONSTANT_MUT, CONSTANT_MUT) : 0;
+			this.Constant = (Random.value>.5f ? p1.Constant : p2.Constant) + cm;
+
+			float am = (Random.value < MUTATION_CHANCE) ? Random.Range(-ASYMPTOTE_MUT, ASYMPTOTE_MUT) : 0;
+			this.Asymptote = (Random.value>.5f ? p1.Asymptote : p2.Asymptote) + am;
+
 		}
 	}
 
@@ -185,13 +188,12 @@ public class ForceDNA {
 			this.Carryover = Random.Range(CARRY_MIN, CARRY_MAX);
 		}
 
-		public PathfindChrom(PathfindChrom parent) : base(parent) {
-			if (Random.value < MUTATION_CHANCE) {
-				this.Steps = parent.Steps + Random.Range(-STEPS_MUT, STEPS_MUT);
-			}
-			if (Random.value < MUTATION_CHANCE) {
-				this.Carryover = parent.Carryover + Random.Range(-CARRY_MUT, CARRY_MUT);
-			}
+		public PathfindChrom(PathfindChrom p1, PathfindChrom p2) : base(p1, p2) {
+			float sm = (Random.value < MUTATION_CHANCE) ? Random.Range(-STEPS_MUT, STEPS_MUT) : 0;
+			this.Steps = (Random.value>.5f ? p1.Steps : p2.Steps) + sm;
+
+			float cm = (Random.value < MUTATION_CHANCE) ? Random.Range(-CARRY_MUT, CARRY_MUT) : 0;
+			this.Carryover = (Random.value>.5f ? p1.Carryover : p2.Carryover) + cm;
 		}
 	}
 }
