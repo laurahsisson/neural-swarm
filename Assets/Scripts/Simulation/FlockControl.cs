@@ -100,6 +100,31 @@ public class FlockControl : MonoBehaviour {
 		for (int i = 0; i < walls.Length; i++) {
 			walls [i] = Instantiate<GameObject>(wallPrefab);
 		}
+
+		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
+			float width = Random.Range(WALL_MIN_WIDTH, WALL_MAX_WIDTH);
+			float area = Random.Range(WALL_MIN_AREA, WALL_MAX_AREA);
+			walls [i].transform.localScale = new Vector3(width, area / width, 1f);
+			walls [i].transform.position = randomPosition();
+			walls [i].transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
+		}
+
+		goal.transform.position = randomPosition();
+		Collider2D goalCollider = goal.GetComponent<Collider2D>();
+		bool hasOverlap = true;
+		while (hasOverlap) {
+			hasOverlap = false;
+			for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
+				ColliderDistance2D distance = goalCollider.Distance(walls [i].GetComponent<Collider2D>());
+				if (distance.distance < 0) {
+					hasOverlap = true;
+					goal.transform.position = randomPosition();
+					break;
+				}
+			}
+		}
+
+
 		resetSimulation();
 	}
 
@@ -120,7 +145,6 @@ public class FlockControl : MonoBehaviour {
 
 	// Resets the walls, goal and all birds.
 	private void resetSimulation() {
-		goal.transform.position = randomPosition();
 
 		reachedGoal = 0;
 		for (int i = 0; i < NUM_BIRDS; i++) {
@@ -131,29 +155,6 @@ public class FlockControl : MonoBehaviour {
 			bird.Setup(size, speed, i);
 			bird.SetForce(new Vector2(Random.value-.5f,Random.value-.5f).normalized*bird.Speed);
 			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
-		}
-
-		for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
-			float width = Random.Range(WALL_MIN_WIDTH, WALL_MAX_WIDTH);
-			float area = Random.Range(WALL_MIN_AREA, WALL_MAX_AREA);
-			walls [i].transform.localScale = new Vector3(width, area / width, 1f);
-			walls [i].transform.position = randomPosition();
-			walls [i].transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
-		}
-
-
-		Collider2D goalCollider = goal.GetComponent<Collider2D>();
-		bool hasOverlap = true;
-		while (hasOverlap) {
-			hasOverlap = false;
-			for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
-				ColliderDistance2D distance = goalCollider.Distance(walls [i].GetComponent<Collider2D>());
-				if (distance.distance < 0) {
-					hasOverlap = true;
-					goal.transform.position = randomPosition();
-					break;
-				}
-			}
 		}
 
 		statsControl.Setup(NUM_BIRDS, MAX_TIME);
