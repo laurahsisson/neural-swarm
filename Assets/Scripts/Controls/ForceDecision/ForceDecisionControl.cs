@@ -71,9 +71,9 @@ public class ForceDecisionControl : DecisionControl {
 
 		for (int i = 0; i < sf.Length; i++) {
 			BirdControl me = us.birds [i];
-			Vector2 final = sf [i];// + repulsion(us.birds, sf, me); //TODO
+			Vector2 final = sf [i] + repulsion(us.birds, sf, me);
 			forces [i] = steer(me, final);
-
+			Debug.DrawRay(me.transform.position,forces[i]);
 		}
 
 		return forces;
@@ -85,8 +85,8 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 align = aligment(us.birds, me);
 		Vector2 cohes = cohesion(us.birds, me);
 		Vector2 obstcl = obstacle(us.walls, me);
-		Vector2 goal = rewardSimple(us.goal.transform.position,me);//Vector2.zero; //rewardForces [me.Number]; //TODO
-		Vector2 bndry = Vector2.zero; //boundary(us, me); //TODO
+		Vector2 goal = rewardForces [me.Number];
+		Vector2 bndry = boundary(us, me); 
 		Vector2 force = align + cohes + obstcl + goal + bndry;
 		return align+cohes+obstcl+goal+bndry+force;
 	}
@@ -266,7 +266,6 @@ public class ForceDecisionControl : DecisionControl {
 		return force;
 	}
 
-
 	private Vector2 obstacle(GameObject[] walls, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (GameObject wall in walls) {
@@ -275,6 +274,27 @@ public class ForceDecisionControl : DecisionControl {
 			force += calcForce(delta,genome.Obstacle);
 		}
 		return force;
+	}
+
+	private Vector2 boundary(FlockControl.UnityState us, BirdControl me) {
+		float xForce = 0;
+		float yForce = 0;
+		if (me.transform.position.x<us.roomWidth/2) {
+			float xDist = me.transform.position.x;
+			xForce = genome.Boundary.Constant/Mathf.Pow(xDist, genome.Boundary.Exponent);
+		} else {
+			float xDist = us.roomWidth - me.transform.position.x;
+			xForce = -1*genome.Boundary.Constant/Mathf.Pow(xDist, genome.Boundary.Exponent);
+		}
+
+		if (me.transform.position.y<us.roomHeight/2) {
+			float yDist = me.transform.position.y;
+			yForce = genome.Boundary.Constant/Mathf.Pow(yDist, genome.Boundary.Exponent);
+		} else {
+			float yDist = us.roomHeight - me.transform.position.y;
+			yForce = -1*genome.Boundary.Constant/Mathf.Pow(yDist, genome.Boundary.Exponent);
+		}
+		return new Vector2(xForce,yForce);
 	}
 
 	private Vector2 rewardPathfind(Vector2[] path, BirdControl me) {

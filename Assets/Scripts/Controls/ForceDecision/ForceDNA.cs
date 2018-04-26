@@ -70,7 +70,6 @@ public abstract class ForceDNA {
 
 	}
 
-
 	public class PathChrom {
 		public readonly Chromosome Chrom;
 		public readonly float Steps;
