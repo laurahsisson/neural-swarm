@@ -5,7 +5,7 @@ public class ForceDNA {
 	// Use a high mutation rate because we are not flipping bits but modifying floats
 	static readonly float MUTATION_CHANCE = .25f;
 	// How far in our range we travel in one mutation
-	static readonly float MUTATION_RATE = .1f;
+	static readonly float MUTATION_RATE = .5f;
 
 
 	// How close an object has to be to exert a force
@@ -67,7 +67,14 @@ public class ForceDNA {
 			scores[i] = Mathf.Max(1,(gs.completed[i]*COMPLETED_MULT) - (gs.birdCollisions[i]*BIRD_MULT+gs.wallCollisions[i]*WALL_MULT));
 			sum += scores[i];
 		}
-		Debug.Log(gs.completed.Sum() + "," + gs.birdCollisions.Sum() + "," + gs.wallCollisions.Sum() + ":" + sum);
+
+		float s = 0;
+		for (int i = 0; i < genomes.Length; i++) {
+			s+=genomes[i].Flock.AlignForce*scores[i];
+		}
+		Debug.Log(s/sum);
+
+//		Debug.Log(gs.completed.Sum() + "," + gs.birdCollisions.Sum() + "," + gs.wallCollisions.Sum() + ":" + sum);
 		// Score for a bird is that individual birds score plus average score. In better performing generations, all birds are more equall likely to reproduce.
 		float ave = sum/scores.Length;
 		for (int i = 0; i < scores.Length; i++) {
@@ -78,20 +85,22 @@ public class ForceDNA {
 		Genome[] newGenomes = new Genome[genomes.Length];
 
 		for (int i = 0; i < genomes.Length; i++) {
-			Genome p1 = selectParent(scores,sum);
-			Genome p2 = selectParent(scores,sum);
-			newGenomes[i] = new Genome(p1,p2);
+			int p1 = selectParent(scores,sum);
+			int p2 = selectParent(scores,sum);
+			Genome g1 = genomes[p1];
+			Genome g2 = genomes[p2];
+			newGenomes[i] = new Genome(g1,g2);
 		}
 	}
 
-	private Genome selectParent(float[] scores, float sum) {
+	private int selectParent(float[] scores, float sum) {
 		float s = Random.Range(0,sum);
 		int parent = -1;
 		while (s > 0) {
 			parent++;
 			s -= scores[parent];
 		}
-		return genomes[parent];
+		return parent;
 	}
 
 	public class Genome {

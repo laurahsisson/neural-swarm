@@ -7,7 +7,7 @@ public class ForceDecisionControl : DecisionControl {
 	public PathfindControl pf;
 
 	// The total number of birds that will use pathfinding
-	private static readonly int PATHFIND_TOKENS = 20;
+	private static readonly int PATHFIND_TOKENS = 0;//20;
 	// The angle within which we check to see if anyone is leading
 	private static readonly float VIEW_ANGLE = 45f;
 
