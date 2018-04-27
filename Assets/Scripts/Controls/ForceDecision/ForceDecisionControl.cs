@@ -62,33 +62,29 @@ public class ForceDecisionControl : DecisionControl {
 
 		generateRewards(us);
 
-		Vector2[] sf = new Vector2[us.birds.Length];
-		for (int i = 0; i < sf.Length; i++) {
-			sf [i] = getStaticForce(us, i);
-		}
 
 		Vector2[] forces = new Vector2[us.birds.Length];
-
-		for (int i = 0; i < sf.Length; i++) {
-			BirdControl me = us.birds [i];
-			Vector2 final = sf [i] + repulsion(us.birds, sf, me);
-			forces [i] = steer(me, final);
-			Debug.DrawRay(me.transform.position,forces[i]);
+		for (int i = 0; i < us.birds.Length; i++) {
+			Vector2 f = getForces(us, i);
+			forces [i] = steer(us.birds[i], f);
 		}
-
 		return forces;
 	}
 
-	private Vector2 getStaticForce(FlockControl.UnityState us, int birdNumber) {
+	private Vector2 getForces(FlockControl.UnityState us, int birdNumber) {
 		BirdControl me = us.birds [birdNumber];
 
 		Vector2 align = aligment(us.birds, me);
 		Vector2 cohes = cohesion(us.birds, me);
+		Vector2 repul = repulsion(us.birds, me); 
+
 		Vector2 obstcl = obstacle(us.walls, me);
+
 		Vector2 goal = rewardForces [me.Number];
+
 		Vector2 bndry = boundary(us, me); 
 		Vector2 force = align + cohes + obstcl + goal + bndry;
-		return align+cohes+obstcl+goal+bndry+force;
+		return align+cohes+obstcl+goal+bndry+force+repul;
 	}
 
 	private Vector2 steer(BirdControl me, Vector2 force) {
@@ -251,7 +247,7 @@ public class ForceDecisionControl : DecisionControl {
 		return force;
 	}
 
-	private Vector2 repulsion(BirdControl[] birds, Vector2[] staticForces, BirdControl me) {
+	private Vector2 repulsion(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
 			if (b.Equals(me)) {
@@ -260,8 +256,7 @@ public class ForceDecisionControl : DecisionControl {
 
 			BirdTuple bt = new BirdTuple(me.Number, b.Number);
 			Vector2 delta = -1 * getDelta(bt, me.Number); // getDelta points to the other birds, so reverse it
-			float adaptiveForce = Mathf.Max(1, staticForces [b.Number].sqrMagnitude);
-			force += calcForce(delta,genome.Repulse)*adaptiveForce;
+			force += calcForce(delta,genome.Repulse);
 		}
 		return force;
 	}
