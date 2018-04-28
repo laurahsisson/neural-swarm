@@ -8,30 +8,17 @@ public class ForceDecisionControl : DecisionControl {
 
 	// The total number of birds that will use pathfinding
 	private static readonly int PATHFIND_TOKENS = 0;
-//20;
 	private static readonly float MAX_FORCE = 1000000;
 
 	private ForceDNA dna;
 	private ForceDNA.Genome genome;
 
-	private Dictionary<BirdTuple,Vector2> btDistances = new Dictionary<BirdTuple,Vector2>();
-
 	private Vector2[] rewardForces;
 	private bool[] gotRewardToken;
 
 
-	private struct BirdTuple {
-		public int b1;
-		public int b2;
-
-		public BirdTuple(int bl, int br) {
-			b1 = Mathf.Min(bl, br);
-			b2 = Mathf.Max(bl, br);
-		}
-	}
-
-	public override void InitializeModel(int numBirds) {
-		dna = new ForceGenetic(numBirds);
+	public override void InitializeModel(int numBirds,  FlockControl.RandomDelegate  rp) {
+		dna = new ForceGenetic(numBirds, rp);
 	}
 
 	public override void StartGeneration(FlockControl.UnityState us) {
@@ -40,31 +27,20 @@ public class ForceDecisionControl : DecisionControl {
 		gotRewardToken = new bool[us.birds.Length];
 	}
 
-	public override void EndGeneration(StatsControl.GenerationStats gs) {
-		float score = gs.completed [0];
+	public override void EndGeneration(float score) {
 		dna.Score(score);
 	}
 
 	public override Vector2[] MakeDecisions(FlockControl.UnityState us) {
-		btDistances.Clear();
-
-		for (int i = 0; i < us.birds.Length; i++) {
-			for (int j = i + 1; j < us.birds.Length; j++) {
-				BirdControl b1 = us.birds [i];
-				BirdControl b2 = us.birds [j];
-				ColliderDistance2D cd = b1.GetComponent<Collider2D>().Distance(b2.GetComponent<Collider2D>());
-				Vector2 delta = (cd.pointB - cd.pointA);
-				BirdTuple bt = new BirdTuple(i, j);
-				btDistances [bt] = delta;
-				
-			}
-		}
-
 		generateRewards(us);
 
 
 		Vector2[] forces = new Vector2[us.birds.Length];
 		for (int i = 0; i < us.birds.Length; i++) {
+			if (!us.birds[i].Moving) {
+				forces[i]=Vector2.zero;
+				continue;
+			}
 			Vector2 f = getForces(us, i);
 			forces [i] = steer(us.birds[i], f);
 		}
@@ -83,8 +59,7 @@ public class ForceDecisionControl : DecisionControl {
 		Vector2 goal = rewardForces [me.Number];
 
 		Vector2 bndry = boundary(us, me); 
-		Vector2 force = align + cohes + obstcl + goal + bndry;
-		return align+cohes+obstcl+goal+bndry+force+repul;
+		return align+cohes+obstcl+goal+bndry+repul;
 	}
 
 	private Vector2 steer(BirdControl me, Vector2 force) {
@@ -141,14 +116,12 @@ public class ForceDecisionControl : DecisionControl {
 
 			bool hasLeader = false;
 			foreach (BirdControl b in us.birds) {
-				if (b.Equals(me)) {
+				if (b.Equals(me) || !b.Moving) {
 					continue;
 				}
 
-				BirdTuple bt = new BirdTuple(me.Number, b.Number);
-				Vector2 delta = getDelta(bt, me.Number);
-
-				if (delta.magnitude>genome.Pathfind.Distance) {
+				float dist = me.GetDistance(b).dist;
+				if (dist>genome.Pathfind.Distance) {
 					continue;
 				}
 
@@ -222,12 +195,11 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 cohesion(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
-			if (b.Equals(me)) {
+			if (b.Equals(me) || !b.Moving) {
 				continue;
 			}
-			BirdTuple bt = new BirdTuple(me.Number, b.Number);
-			Vector2 delta = getDelta(bt, me.Number); 
-			force += calcForce(delta,genome.Repulse);
+			BirdControl.CachedDelta cd = me.GetDistance(b);
+			force += calcForce(cd.norm,cd.dist,genome.Cohesion);
 		}
 		return force;
 	}
@@ -235,13 +207,13 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 aligment(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
-			if (b.Equals(me)) {
+			if (b.Equals(me) || !b.Moving) {
 				continue;
 			}
 
-			BirdTuple bt = new BirdTuple(me.Number, b.Number);
-			Vector2 delta = getDelta(bt, me.Number);
-			float mag = calcForce(delta, genome.Align).magnitude;
+			BirdControl.CachedDelta cd = me.GetDistance(b);
+			float mag = calcForce(cd.norm,cd.dist,genome.Align).magnitude;
+
 			force += b.Velocity.normalized * mag;
 		}
 		return force;
@@ -250,23 +222,21 @@ public class ForceDecisionControl : DecisionControl {
 	private Vector2 repulsion(BirdControl[] birds, BirdControl me) {
 		Vector2 force = Vector2.zero;
 		foreach (BirdControl b in birds) {
-			if (b.Equals(me)) {
+			if (b.Equals(me) || !b.Moving) {
 				continue;
 			}
 
-			BirdTuple bt = new BirdTuple(me.Number, b.Number);
-			Vector2 delta = -1 * getDelta(bt, me.Number); // getDelta points to the other birds, so reverse it
-			force += calcForce(delta,genome.Repulse);
+			BirdControl.CachedDelta cd = me.GetDistance(b);
+			force += calcForce(-1*cd.norm,cd.dist,genome.Repulse);
 		}
 		return force;
 	}
 
 	private Vector2 obstacle(GameObject[] walls, BirdControl me) {
 		Vector2 force = Vector2.zero;
-		foreach (GameObject wall in walls) {
-			ColliderDistance2D cd = me.GetComponent<Collider2D>().Distance(wall.GetComponent<Collider2D>());
-			Vector2 delta = cd.pointA - cd.pointB;
-			force += calcForce(delta,genome.Obstacle);
+		for (int i = 0; i < walls.Length; i++) {
+			BirdControl.CachedDelta cd = me.WallDistance(i);
+			force += calcForce(-1*cd.norm,cd.dist,genome.Cohesion);
 		}
 		return force;
 	}
@@ -339,16 +309,6 @@ public class ForceDecisionControl : DecisionControl {
 
 	static bool withinAngle(float a, float b, float dist) {
 		return (360 - Mathf.Abs(a - b) % 360 < dist || Mathf.Abs(a - b) % 360 < dist);
-	}
-
-	private Vector2 getDelta(BirdTuple bt, int number) {
-		// We must account for the proper orientation for the delta
-		Vector2 delta = btDistances [bt];
-		if (number == bt.b1) {
-			return delta;
-		} else {
-			return -1 * delta;
-		}
 	}
 
 }

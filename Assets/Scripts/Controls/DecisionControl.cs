@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class DecisionControl : MonoBehaviour {
 
-	public virtual void InitializeModel(int numBirds) {
+	public virtual void InitializeModel(int numBirds, FlockControl.RandomDelegate randomizePositions) {
 	}
 
 	public virtual void StartGeneration(FlockControl.UnityState us) {
@@ -18,7 +18,7 @@ public class DecisionControl : MonoBehaviour {
 		return decisions;
 	}
 
-	public virtual void EndGeneration(StatsControl.GenerationStats gs) {
+	public virtual void EndGeneration(float score) {
 	}
 
 }

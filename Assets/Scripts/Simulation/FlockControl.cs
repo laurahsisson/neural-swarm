@@ -10,6 +10,9 @@ public class FlockControl : MonoBehaviour {
 
 	public bool callingPython;
 	public DecisionControl decisionControl;
+	public ScoreControl scoreControl;
+
+	public delegate void RandomDelegate();
 
 	public GameObject[] staticWalls;
 
@@ -37,7 +40,7 @@ public class FlockControl : MonoBehaviour {
 	private readonly float WALL_MAX_AREA = 12f;
 	private readonly float WALL_MIN_AREA = 8f;
 
-	private readonly float SIMULATION_SPEED = 1f;
+	private readonly float SIMULATION_SPEED = 2f;
 	private readonly float FRAMES_PER_SECOND = 30f;
 
 	private GameObject goal;
@@ -46,7 +49,6 @@ public class FlockControl : MonoBehaviour {
 	private int generation = 0;
 	private int reachedGoal;
 	private readonly float MAX_TIME = 20;
-
 
 
 	public struct UnityState {
@@ -72,7 +74,8 @@ public class FlockControl : MonoBehaviour {
 
 	public void Start() {
 		if (!callingPython) {
-			decisionControl.InitializeModel(NUM_BIRDS);
+			
+			decisionControl.InitializeModel(NUM_BIRDS, randomizePositions);
 			Destroy(GameObject.FindGameObjectWithTag("ClientServer"));
 		}
 		Application.targetFrameRate = (int) (FRAMES_PER_SECOND*SIMULATION_SPEED);
@@ -117,7 +120,7 @@ public class FlockControl : MonoBehaviour {
 	private void endSimulation() {
 		StatsControl.GenerationStats gs = statsControl.CalculateStats();
 		if (!callingPython) {
-			decisionControl.EndGeneration(gs);
+			decisionControl.EndGeneration(scoreControl.GetScore(gs));
 		}
 		resetSimulation();
 	}
@@ -127,35 +130,24 @@ public class FlockControl : MonoBehaviour {
 			float width = Random.Range(WALL_MIN_WIDTH, WALL_MAX_WIDTH);
 			float area = Random.Range(WALL_MIN_AREA, WALL_MAX_AREA);
 			walls [i].transform.localScale = new Vector3(width, area / width, 1f);
-			walls [i].transform.position = randomPosition();
-			walls [i].transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
+			findPlacement(walls[i]);
 		}
 
-		goal.transform.position = randomPosition();
-		Collider2D goalCollider = goal.GetComponent<Collider2D>();
-		bool hasOverlap = true;
-		while (hasOverlap) {
-			hasOverlap = false;
-			for (int i = 0; i < NUM_RANDOM_WALLS; i++) {
-				ColliderDistance2D distance = goalCollider.Distance(walls [i].GetComponent<Collider2D>());
-				if (distance.distance < 0) {
-					hasOverlap = true;
-					goal.transform.position = randomPosition();
-					break;
-				}
-			}
-		}
+		findPlacement(goal);
 
 		for (int i = 0; i < NUM_BIRDS; i++) {
 			BirdControl bird = birdControls [i];
-			startPositions[i] = randomPosition();
 			float size = Random.Range(MIN_SIZE, MAX_SIZE);
 			float speed = Random.Range(MIN_SPEED, MAX_SPEED);
-			bird.Setup(size, speed, i);
-			bird.SetForce(new Vector2(Random.value-.5f,Random.value-.5f).normalized*bird.Speed);
-			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
-		}
+			bird.Setup(size, speed, i, NUM_BIRDS, walls.Length);
 
+			bird.SetForce(new Vector2(Random.value-.5f,Random.value-.5f).normalized*bird.Speed);
+
+			bird.GetComponent<Renderer>().material.color = new Color(Random.Range(.5f, 1f), Random.Range(.5f, 1f), Random.Range(.5f, 1f));
+
+			findPlacement(bird.gameObject);
+			startPositions[i] = bird.transform.position;
+		}
 	}
 
 	// Resets the walls, goal and all birds.
@@ -167,6 +159,7 @@ public class FlockControl : MonoBehaviour {
 			bird.Reset();
 		}
 
+		scoreControl.Setup(NUM_BIRDS);
 		statsControl.Setup(NUM_BIRDS, MAX_TIME);
 		uiControl.AwaitingText();
 		if (!callingPython) {
@@ -254,9 +247,53 @@ public class FlockControl : MonoBehaviour {
 		return new Rect(0, 0, ROOM_WIDTH, ROOM_HEIGHT);
 	}
 
+	private void findPlacement(GameObject go) {
+		Collider2D cld = go.GetComponent<Collider2D>();
+		Vector3 origScale = go.transform.localScale;
+		// Scale us up by a buffer factor
+		go.transform.localScale *= 2;
+		ContactFilter2D cf = new ContactFilter2D();
+		cf.useTriggers = true;
+		// We don't actually care about collecting other colliders, just want to count
+		Collider2D[] others = new Collider2D[1];
+
+		bool hitOthers = true;
+		while (hitOthers) {
+			go.transform.rotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
+			go.transform.position = randomPosition();
+			int hit = cld.OverlapCollider(cf,others);
+			hitOthers = hit != 0;
+		}
+		go.transform.localScale = origScale;
+	}
+
 	private Vector3 randomPosition() {
 		return new Vector3(Random.Range(0, ROOM_WIDTH), Random.Range(0, ROOM_HEIGHT), 0);
 	}
+
+	private void setupDistCache() {
+		for (int i = 0; i < birdControls.Length; i++) {
+			for (int j = i+1; j < birdControls.Length; j++) {
+				BirdControl b1 = birdControls [i];
+				BirdControl b2 = birdControls [j];
+				ColliderDistance2D cd = b1.GetComponent<Collider2D>().Distance(b2.GetComponent<Collider2D>());
+				Vector2 delta = (cd.pointB - cd.pointA);
+				b1.SetDistance(b2,delta);
+				b2.SetDistance(b1,-1*delta);
+			}
+		}
+
+		for (int i = 0; i < birdControls.Length; i++) {
+			for (int j = 0; j < walls.Length; j++) {
+				BirdControl b1 = birdControls [i];
+				GameObject wall = walls[j];
+				ColliderDistance2D cd = b1.GetComponent<Collider2D>().Distance(wall.GetComponent<Collider2D>());
+				Vector2 delta = (cd.pointB - cd.pointA);
+				b1.SetWallDist(j,delta);
+			}	
+		}
+	}
+
 
 	private void Update() {
 		if (!hasReceivedStart && callingPython) {
@@ -264,8 +301,11 @@ public class FlockControl : MonoBehaviour {
 			return;
 		}
 		if (!callingPython) {
+			setupDistCache();
+
 			float updateStart = Time.realtimeSinceStartup;
 			UnityState us = buildUnityState();
+			scoreControl.SetScore(us);
 			Vector2[] forces = decisionControl.MakeDecisions(us);
 			Debug.Assert(forces.Length == birdControls.Length);
 			for (int i = 0; i < forces.Length; i++) {

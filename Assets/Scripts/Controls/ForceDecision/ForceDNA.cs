@@ -52,6 +52,24 @@ public abstract class ForceDNA {
 			Reward = rew;
 			Pathfind = pf;
 		}
+
+		public override string ToString() {
+			return Align.ToString() + "\n" + Cohesion.ToString() + "\n" + Repulse.ToString() + "\n" + Obstacle.ToString() + 
+				"\n" + Boundary.ToString() + "\n" + Reward.ToString() + "\n" + Pathfind.ToString();
+		}
+
+		public static Genome FromString(string str) {
+			string[] split = str.Split("\n".ToCharArray());
+			Chromosome ali = Chromosome.FromString(split[0]);
+			Chromosome coh = Chromosome.FromString(split[1]);
+			Chromosome rep = Chromosome.FromString(split[2]);
+			Chromosome obs = Chromosome.FromString(split[3]);
+			Chromosome bou = Chromosome.FromString(split[4]);
+			Chromosome rew = Chromosome.FromString(split[5]);
+			PathChrom pf = PathChrom.FromString(split[6]);
+
+			return new Genome(ali, coh, rep, obs, bou, rew, pf);
+		}
 	}
 
 	public class Chromosome {
@@ -64,11 +82,25 @@ public abstract class ForceDNA {
 		}
 
 		public Chromosome(float c, float e) {
-			Constant = c;
-			Exponent = e;
+			Constant = Mathf.Clamp(c, CONST_MIN, CONST_MAX);
+			Exponent = Mathf.Clamp(e, EXP_MIN, EXP_MAX);
 		}
 
+		public override string ToString() {
+			string c = "Const: " + Constant;
+			string e = "Exp: " + Exponent;
+			return c + "\t" + e;
+		}
+
+		public static Chromosome FromString(string str) {
+			string[] split = str.Split("\t".ToCharArray());
+			Debug.Log(str);
+			float c = float.Parse(split [0].Split(":".ToCharArray()) [1]);
+			float e = float.Parse(split [1].Split(":".ToCharArray()) [1]);
+			return new Chromosome(c, e);
+		}
 	}
+
 
 	public class PathChrom {
 		public readonly Chromosome Chrom;
@@ -99,10 +131,31 @@ public abstract class ForceDNA {
 
 		public PathChrom(Chromosome cr, float s, float c, float d, float v) {
 			Chrom = cr;
-			Steps = s;
-			Distance = d;
-			View = v;
-			Carryover = c;
+			Steps = Mathf.Clamp(s, STEP_MIN, STEP_MAX);
+			Carryover = Mathf.Clamp(c, CARRY_MIN, CARRY_MAX);
+			Distance = Mathf.Clamp(d, DIST_MIN, DIST_MAX);
+			View = Mathf.Clamp(v, VIEW_MIN, VIEW_MAX);
 		}
+
+		public override string ToString() {
+			string b = Chrom.ToString();
+			string s = "Step: " + Steps;
+			string c = "Carry: " + Carryover;
+			string d = "Dist: " + Distance;
+			string v = "View: " + View;
+			return b + "\t" + s + "\t" + c + "\t" + d + "\t" + v;
+		}
+
+		public static PathChrom FromString(string str) {
+			string[] split = str.Split("\t".ToCharArray());
+			Chromosome cr = Chromosome.FromString(split [0] + "\t" + split [1]);
+			float s = float.Parse(split [2].Split(":".ToCharArray()) [1]);
+			float c = float.Parse(split [3].Split(":".ToCharArray()) [1]);
+			float d = float.Parse(split [4].Split(":".ToCharArray()) [1]);
+			float v = float.Parse(split [5].Split(":".ToCharArray()) [1]);
+			return new PathChrom(cr, s, c, d, v);
+		}
+
+
 	}
 }

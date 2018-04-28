@@ -11,7 +11,12 @@ public class BirdControl : MonoBehaviour {
 
 	private Vector3 defaultScale = new Vector3(1f, 2.5f, 1f);
 
+	private CachedDelta[] birdDeltas;
+	private CachedDelta[] wallDeltas;
+
 	private Vector2 velocity;
+
+	private bool countCollision;
 
 	public Vector2 Velocity {
 		get {
@@ -70,7 +75,20 @@ public class BirdControl : MonoBehaviour {
 		public bool active;
 	}
 
-	public void Setup(float size, float speed, int number) {
+	public struct CachedDelta {
+		public readonly Vector2 norm;
+		public readonly float dist;
+		public CachedDelta(Vector2 delta) {
+			dist = delta.magnitude;
+			if (dist == 0) {
+				norm = delta;
+			} else {
+				norm = delta/dist;
+			}
+		}
+	}
+
+	public void Setup(float size, float speed, int number, int numBirds, int numWalls) {
 		this.flockControl = FindObjectOfType<FlockControl>();
 		this.statsControl = FindObjectOfType<StatsControl>();
 		this.velocity = Vector2.zero;
@@ -81,8 +99,27 @@ public class BirdControl : MonoBehaviour {
 		this.mass = size * size;
 		this.number = number;
 		this.lastPos = transform.position;
-		moving = true;
 		gameObject.GetComponent<Collider2D>().enabled = true;
+		birdDeltas = new CachedDelta[numBirds];
+		wallDeltas = new CachedDelta[numWalls];
+		countCollision = false;
+
+	}
+
+	public void SetDistance(BirdControl other, Vector2 delta) {
+		birdDeltas[other.number]=new CachedDelta(delta);
+	}
+
+	public CachedDelta GetDistance(BirdControl other) {
+		return birdDeltas[other.number];
+	}
+
+	public void SetWallDist(int i, Vector2 delta) {
+		wallDeltas[i] = new CachedDelta(delta);
+	}
+
+	public CachedDelta WallDistance(int i) {
+		return wallDeltas[i];
 	}
 
 	public void Reset() {
@@ -103,14 +140,13 @@ public class BirdControl : MonoBehaviour {
 	// Update is called once per frame
 	public void Update() {
 		if (!moving) {
-			transform.position = new Vector3(transform.position.x, transform.position.y, 10);
 			return;
 		}
+		countCollision = true;
 
 		lastPos = transform.position;
 
-		// accel = force/mass (F=M*A)
-		velocity += force / mass * Time.deltaTime;
+		velocity += force / mass * Time.deltaTime; // F=MA
 		velocity = Vector2.ClampMagnitude(velocity, speed);
 		transform.position += (Vector3)velocity * Time.deltaTime;
 
@@ -120,6 +156,10 @@ public class BirdControl : MonoBehaviour {
 	}
 
 	public void OnTriggerEnter2D(Collider2D collider) {
+		if (!countCollision) {
+			return;
+		}
+
 		if (collider.gameObject.tag == "Bird") {
 			BirdControl other = collider.GetComponent<BirdControl>();
 			if (other.number < number || number == -1) {
@@ -130,6 +170,7 @@ public class BirdControl : MonoBehaviour {
 		if (collider.gameObject.tag == "Goal") {
 			moving = false;
 			gameObject.GetComponent<Collider2D>().enabled = false;
+			transform.position = new Vector3(collider.transform.position.x,collider.transform.position.y,10);
 			statsControl.Complete(number);
 			flockControl.IncrementGoal();
 		}
@@ -204,7 +245,6 @@ public class BirdControl : MonoBehaviour {
 		statsControl.AddBirdCollision(other.number);
 
 	}
-
 
 	// Given two objects, each with a position, mass, and velocity calculates the new velocity of object 1.
 	private static Vector2 getResultantVelocity(Vector2 position1, Vector2 position2, float mass1, float mass2, Vector2 velocity1, Vector2 velocity2) {

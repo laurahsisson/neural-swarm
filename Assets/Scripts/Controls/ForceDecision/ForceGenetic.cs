@@ -5,35 +5,47 @@ using System.Linq;
 
 public class ForceGenetic : ForceDNA {
 	// Use a high mutation rate because we are not flipping bits but modifying floats
-	static readonly float MUTATION_CHANCE = .25f;
+	private static readonly float MUTATION_CHANCE = .25f;
 	// How far in our range we travel in one mutation
-	static readonly float MUTATION_RATE = .5f;
+	private static readonly float MUTATION_RATE = .5f;
 
-	static readonly float CONST_MUT = (CONST_MIN+CONST_MAX)/2*MUTATION_RATE;
+	private static readonly float CONST_MUT = (CONST_MIN+CONST_MAX)/2*MUTATION_RATE;
 
-	static readonly float EXP_MUT = (EXP_MIN+EXP_MAX)/2*MUTATION_RATE;
+	private static readonly float EXP_MUT = (EXP_MIN+EXP_MAX)/2*MUTATION_RATE;
 
-	static readonly float STEP_MUT = (STEP_MIN+STEP_MAX)/2*MUTATION_RATE;
+	private static readonly float STEP_MUT = (STEP_MIN+STEP_MAX)/2*MUTATION_RATE;
 
-	static readonly float CARRY_MUT = (CARRY_MIN+CARRY_MAX)/2*MUTATION_RATE;
+	private static readonly float CARRY_MUT = (CARRY_MIN+CARRY_MAX)/2*MUTATION_RATE;
 
-	static readonly float DIST_MUT = (DIST_MIN+DIST_MAX)/2*MUTATION_RATE;
+	private static readonly float DIST_MUT = (DIST_MIN+DIST_MAX)/2*MUTATION_RATE;
 
-	static readonly float VIEW_MUT = (VIEW_MIN+VIEW_MAX)/2*MUTATION_RATE;
+	private static readonly float VIEW_MUT = (VIEW_MIN+VIEW_MAX)/2*MUTATION_RATE;
 
-	static readonly int NUM_SPECIES = 15;
+	private static readonly int NUM_SPECIES = 30;
+
+	private static readonly float SCORE_CUTOFF = .1f;
+
+	private float lastScore = 0;
 
 	private Genome[] genomes;
 	private float[] scores;
 	private int current;
 
-	public ForceGenetic(int numBirds) {
+	private string uuid;
+	private int generation = 1;
+
+	private FlockControl.RandomDelegate randomizePositions;
+
+	public ForceGenetic(int numBirds,  FlockControl.RandomDelegate rp) {
 		genomes = new Genome[NUM_SPECIES];
 		for (int i = 0; i < NUM_SPECIES; i++) {
 			genomes[i] = new Genome();
 		}
 		scores = new float[NUM_SPECIES];
 		current = -1;
+		randomizePositions = rp;
+
+		uuid = System.Guid.NewGuid().ToString("N");
 	}
 
 	public override Genome Next() {
@@ -41,11 +53,15 @@ public class ForceGenetic : ForceDNA {
 		if (current>=genomes.Length) {
 			current = 0;
 			evolve();
+			save();
 		}
 		return genomes[current];
 	}
 
 	private void evolve() {
+		save();
+		generation++;
+
 		Genome[] newGenomes = new Genome[genomes.Length];
 
 		for (int i = 0; i < genomes.Length; i++) {
@@ -57,6 +73,27 @@ public class ForceGenetic : ForceDNA {
 		}
 
 		genomes = newGenomes;
+
+		float s = scores.Sum();
+		float diff = (s-lastScore);
+		lastScore = s;
+
+		if (diff/s<SCORE_CUTOFF) {
+			lastScore = 0;
+			randomizePositions();
+		}
+	}
+
+	private void save() {
+		string[] lines = new string[1+genomes.Length];
+		lines[0] = "Average Score: " + (scores.Sum()/genomes.Length);
+		for (int i = 0; i < genomes.Length; i++) {
+			lines[i+1]="\n\nScore: " + scores[i] + "\n" + genomes[i].ToString();
+		}
+		string dir =Application.dataPath+"/Saves/"+uuid; 
+		System.IO.Directory.CreateDirectory(dir);
+		string title = generation+".save";
+		System.IO.File.WriteAllLines(dir+"/"+title, lines);
 	}
 
 	private int selectParent(float[] adjusted) {
