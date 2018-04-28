@@ -24,7 +24,7 @@ public class ScoreControl : MonoBehaviour {
 
 	public float GetScore(StatsControl.GenerationStats gs) {
 		float totalScore = scores.Sum() + gs.completed.Sum()*COMPLETED_CONST;
-		Debug.Log(totalScore + " Completed: " + gs.completed.Sum() + " Birds: " + gs.birdCollisions.Sum() + " Walls: " + gs.wallCollisions);
+		Debug.Log(totalScore + " Completed: " + gs.completed.Sum() + " Birds: " + gs.birdCollisions.Sum() + " Walls: " + gs.wallCollisions.Sum());
 
 		return totalScore;
 	}
