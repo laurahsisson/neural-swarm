@@ -44,7 +44,7 @@ public class ForceGenetic : ForceDNA {
 		scores = new float[NUM_SPECIES];
 		current = -1;
 		randomizePositions = rp;
-
+		Debug.Log(Application.persistentDataPath);
 		uuid = System.Guid.NewGuid().ToString("N");
 	}
 
@@ -52,14 +52,13 @@ public class ForceGenetic : ForceDNA {
 		current++;
 		if (current>=genomes.Length) {
 			current = 0;
-			evolve();
 			save();
+			evolve();
 		}
 		return genomes[current];
 	}
 
 	private void evolve() {
-		save();
 		generation++;
 
 		Genome[] newGenomes = new Genome[genomes.Length];
@@ -90,7 +89,7 @@ public class ForceGenetic : ForceDNA {
 		for (int i = 0; i < genomes.Length; i++) {
 			lines[i+1]="\n\nScore: " + scores[i] + "\n" + genomes[i].ToString();
 		}
-		string dir =Application.dataPath+"/Saves/"+uuid; 
+		string dir =Application.persistentDataPath+"/Saves/"+uuid; 
 		System.IO.Directory.CreateDirectory(dir);
 		string title = generation+".save";
 		System.IO.File.WriteAllLines(dir+"/"+title, lines);
