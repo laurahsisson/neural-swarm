@@ -2,12 +2,9 @@ import numpy as np
 from timeit import default_timer as timer
 from world_state import WorldState
 from line_bird import LineBird
-<<<<<<< HEAD
 from force_bird import ForceBird
 from multiprocessing import Pool
-=======
-from genetic_bird import GeneticBird
->>>>>>> created new bird control type, genetic bird
+
 
 generation = 1
 
@@ -30,20 +27,10 @@ class FlockControl:
 
         bird_control = ForceBird(ws)
         # Select the bird control type we will be using
-<<<<<<< HEAD
         if bird_control.needs_grid():
             start = timer()
             ws.make_grid(bird_control.get_grid_step())
             print("Grid in :",timer()-start, "seconds")  
-=======
-        #bird_control = LineBird(ws)
-        
-        bird_control = GeneticBird(ws)
-        
-        start = timer()
-        ws.make_grid(bird_control.get_grid_step())
-        # print("Grid in :",timer()-start, "seconds")  
->>>>>>> created new bird control type, genetic bird
 
         start = timer()
 
