@@ -33,6 +33,7 @@ class FlockControl:
 
         start = timer()
 
+
         bird_control.prepare_step()
         if bird_control.parallelizable():
             bird_numbers = range(len(ws.birds))
@@ -46,6 +47,7 @@ class FlockControl:
                 decisions[b] = bird_control.make_decision(b)
         bird_control.end_step()
         self.decision_time += timer() - start
+
         # print("Decisions in :",timer()-start, "seconds")  
 
 
