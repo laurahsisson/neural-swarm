@@ -77,6 +77,9 @@ public class ClientObject : MonoBehaviour {
 	}
 
 	private void OnDestroy() {
+		if (!fc.callingPython) {
+			return;
+		}
 		_netMqListener.Stop();
 	}
 }
