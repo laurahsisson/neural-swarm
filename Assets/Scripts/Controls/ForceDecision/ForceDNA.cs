@@ -57,19 +57,6 @@ public abstract class ForceDNA {
 			return Align.ToString() + "\n" + Cohesion.ToString() + "\n" + Repulse.ToString() + "\n" + Obstacle.ToString() + 
 				"\n" + Boundary.ToString() + "\n" + Reward.ToString() + "\n" + Pathfind.ToString();
 		}
-
-		public static Genome FromString(string str) {
-			string[] split = str.Split("\n".ToCharArray());
-			Chromosome ali = Chromosome.FromString(split[0]);
-			Chromosome coh = Chromosome.FromString(split[1]);
-			Chromosome rep = Chromosome.FromString(split[2]);
-			Chromosome obs = Chromosome.FromString(split[3]);
-			Chromosome bou = Chromosome.FromString(split[4]);
-			Chromosome rew = Chromosome.FromString(split[5]);
-			PathChrom pf = PathChrom.FromString(split[6]);
-
-			return new Genome(ali, coh, rep, obs, bou, rew, pf);
-		}
 	}
 
 	public class Chromosome {
@@ -92,13 +79,6 @@ public abstract class ForceDNA {
 			return c + "\t" + e;
 		}
 
-		public static Chromosome FromString(string str) {
-			string[] split = str.Split("\t".ToCharArray());
-			Debug.Log(str);
-			float c = float.Parse(split [0].Split(":".ToCharArray()) [1]);
-			float e = float.Parse(split [1].Split(":".ToCharArray()) [1]);
-			return new Chromosome(c, e);
-		}
 	}
 
 
@@ -145,17 +125,6 @@ public abstract class ForceDNA {
 			string v = "View: " + View;
 			return b + "\t" + s + "\t" + c + "\t" + d + "\t" + v;
 		}
-
-		public static PathChrom FromString(string str) {
-			string[] split = str.Split("\t".ToCharArray());
-			Chromosome cr = Chromosome.FromString(split [0] + "\t" + split [1]);
-			float s = float.Parse(split [2].Split(":".ToCharArray()) [1]);
-			float c = float.Parse(split [3].Split(":".ToCharArray()) [1]);
-			float d = float.Parse(split [4].Split(":".ToCharArray()) [1]);
-			float v = float.Parse(split [5].Split(":".ToCharArray()) [1]);
-			return new PathChrom(cr, s, c, d, v);
-		}
-
 
 	}
 }
