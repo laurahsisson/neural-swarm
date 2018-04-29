@@ -69,6 +69,8 @@ class WorldState:
            self.grid[x][y] = marker
 
 
+    # every bird has a copy of the grid as  their "decision"
+
     def make_grid(self,grid_step):
         self.grid_step = grid_step
         width_points = int(self.width/grid_step)
