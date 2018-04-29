@@ -8,6 +8,8 @@ public class PathfindControl : MonoBehaviour {
 	// Convert from grid to world multiply by GRID_STEP
 	// The smaller GRID_STEP is, the more granular our map
 
+	// When GRID_STEP is 1, there is no difference between world coordinates and grid coordinates.
+
 
 	private readonly float GRID_STEP = 1f;
 	// Overestimation of sqrt(2). If we are within one GRID_STEP square of the goal we are good to stop
@@ -18,6 +20,12 @@ public class PathfindControl : MonoBehaviour {
 
 
 	private bool[,] grid;
+
+	// @Javiar: This is the basic struct for the graph built off the grid.
+	private struct GraphPoint {
+		public Vector2 gridPos;
+		public List<GraphPoint> neighbors;
+	}
 
 	private struct Node {
 		public Vector2 gridPos;
@@ -66,10 +74,14 @@ public class PathfindControl : MonoBehaviour {
 				grid [gx, gy] = hit == 0;
 			}
 		}
+		// @Javiar: Foreach node in the grid, look at its eight neighbors
+		// Also be sure to include the goal position in the graph you make, even though its neighbors will likely be in the grid
 	}
 
 	public Vector2[] CalculatePath(Vector2 goalPos, BirdControl me) {
 		Vector2 myGridPos = me.transform.position / GRID_STEP;
+		// @Javiar: You may have to modify (or completely rewrite) nearestValidPos, as our start position will almost certainly not be in the graph.
+		// So find the closest graphPoint to our starting gridPos
 		myGridPos = nearestValidPos((int)myGridPos.x, (int)myGridPos.y);
 
 		Vector2 goalGridPos = goalPos / GRID_STEP;
@@ -118,6 +130,7 @@ public class PathfindControl : MonoBehaviour {
 			}
 
 			List<Vector2> ns = neighbors(cur, examined);
+			// @Javiar: This is where neighbors is called. You will have to rewrite neighbors to just look at the current GraphPoint's neighbors.
 			foreach (Vector2 p in ns) {
 				float ng = Vector2.Distance(cur.gridPos, p); 
 				float h = Vector2.Distance(p, goalGridPos);
@@ -206,6 +219,8 @@ public class PathfindControl : MonoBehaviour {
 		return ns;
 	}
 
+	// @Javiar: This is a helper function to look at the grid at a grid x and grid y. It is better than grid[x,y] because it checks the bounds.
+	// if it isn't in the bounds, treat it as false (because we cannot go there).
 	private bool gridAt(int x, int y) {
 		if (x < 0 || x >= grid.GetLength(0)) {
 			return false;
