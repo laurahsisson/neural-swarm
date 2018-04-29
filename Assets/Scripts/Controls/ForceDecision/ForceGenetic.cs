@@ -21,7 +21,7 @@ public class ForceGenetic : ForceDNA {
 
 	private static readonly float VIEW_MUT = twoItemStDev(VIEW_MIN, VIEW_MAX)*MUTATION_RATE;
 
-	private static readonly int NUM_SPECIES = 10;
+	private static readonly int NUM_SPECIES = 100;
 
 	private static readonly float SCORE_CUTOFF = .1f;
 
